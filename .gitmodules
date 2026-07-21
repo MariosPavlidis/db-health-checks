@@ -1,0 +1,3 @@
+[submodule "MSSQL"]
+	path = MSSQL
+	url = https://github.com/MariosPavlidis/SQL-Server-Health-Checks.git

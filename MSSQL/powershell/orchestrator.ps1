@@ -50,6 +50,36 @@ if (-not (Test-Path $runFolder)) {
 Write-HCLog -OutputPath $runFolder -Chapter 'ORCHESTRATOR' -Section '' `
     -Status 'INFO' -Message "Health check started. Instance: $SqlInstance  Output: $runFolder"
 
+# ── Validate SQL Server connectivity before running anything ──────────────────
+Write-HCLog -OutputPath $runFolder -Chapter 'ORCHESTRATOR' -Section '' `
+    -Status 'INFO' -Message "Testing connectivity to $SqlInstance ..."
+
+try {
+    $connSplat = @{
+        ServerInstance         = $SqlInstance
+        Query                  = "SELECT @@SERVERNAME AS [ServerName], @@VERSION AS [Version];"
+        QueryTimeout           = 15
+        TrustServerCertificate = $true
+        ErrorAction            = 'Stop'
+    }
+    if ($SqlCredential) {
+        $connSplat['Username'] = $SqlCredential.UserName
+        $connSplat['Password'] = $SqlCredential.GetNetworkCredential().Password
+    }
+    $connTest = Invoke-Sqlcmd @connSplat
+    Write-HCLog -OutputPath $runFolder -Chapter 'ORCHESTRATOR' -Section '' `
+        -Status 'OK' -Message "Connected: $($connTest.ServerName)"
+}
+catch {
+    $errMsg = $_.Exception.Message
+    Write-HCLog -OutputPath $runFolder -Chapter 'ORCHESTRATOR' -Section '' `
+        -Status 'ERROR' -Message "Cannot connect to '$SqlInstance': $errMsg"
+    Write-Host "`nERROR: Cannot connect to '$SqlInstance'" -ForegroundColor Red
+    Write-Host $errMsg -ForegroundColor Red
+    Write-Host "No chapters were run." -ForegroundColor Yellow
+    return
+}
+
 # ── Discover chapter scripts ──────────────────────────────────────────────────
 $chapterScripts = @(Get-ChildItem -Path $PSScriptRoot -Filter '*.ps1' |
     Where-Object { $_.Name -match '^\d{2}_' } |

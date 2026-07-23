@@ -35,10 +35,10 @@ SET NOCOUNT ON;
 
 -- ── 1. SQL Server memory configuration and process usage ──────────────────────
 SELECT
-    -- Configured limits
-    minmem.value_in_use                             AS MinServerMemoryMB,
-    maxmem.value_in_use                             AS MaxServerMemoryMB,
-    awe.value_in_use                                AS AweEnabled,
+    -- Configured limits (value_in_use is sql_variant — cast for arithmetic)
+    CAST(minmem.value_in_use AS BIGINT)             AS MinServerMemoryMB,
+    CAST(maxmem.value_in_use AS BIGINT)             AS MaxServerMemoryMB,
+    CAST(awe.value_in_use AS INT)                   AS AweEnabled,
     -- Memory model
     si.sql_memory_model                             AS MemoryModelCode,
     si.sql_memory_model_desc                        AS MemoryModel,
@@ -53,16 +53,16 @@ SELECT
     pm.process_physical_memory_low                  AS ProcessMemoryLow,
     pm.process_virtual_memory_low                   AS ProcessVirtualMemoryLow,
     -- Derived: OS headroom
-    (si.physical_memory_kb / 1024) - maxmem.value_in_use
+    (si.physical_memory_kb / 1024) - CAST(maxmem.value_in_use AS BIGINT)
                                                     AS OsHeadroomMB,
     -- Flags
     CASE
-        WHEN maxmem.value_in_use >= si.physical_memory_kb / 1024
+        WHEN CAST(maxmem.value_in_use AS BIGINT) >= si.physical_memory_kb / 1024
                                                     THEN 1 ELSE 0
     END                                             AS flag_max_mem_equals_host,
     CASE
-        WHEN minmem.value_in_use > 0
-         AND minmem.value_in_use >= maxmem.value_in_use
+        WHEN CAST(minmem.value_in_use AS BIGINT) > 0
+         AND CAST(minmem.value_in_use AS BIGINT) >= CAST(maxmem.value_in_use AS BIGINT)
                                                     THEN 1 ELSE 0
     END                                             AS flag_min_exceeds_max,
     CASE
@@ -71,7 +71,7 @@ SELECT
     END                                             AS flag_memory_pressure,
     -- Flag: AWE enabled but LPIM not active (common misconfiguration)
     CASE
-        WHEN awe.value_in_use = 1
+        WHEN CAST(awe.value_in_use AS INT) = 1
          AND si.sql_memory_model <> 1               THEN 1 ELSE 0
     END                                             AS flag_lpim_not_active
 FROM sys.configurations minmem

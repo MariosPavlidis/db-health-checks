@@ -65,28 +65,39 @@ WHERE maxdop.name = 'max degree of parallelism'
   AND ctp.name   = 'cost threshold for parallelism';
 
 -- ── 2. Database-scoped MAXDOP overrides ──────────────────────────────────────
+--    sys.database_scoped_configurations is database-scoped; query each
+--    database using a three-part name via dynamic SQL.
+DECLARE @InstanceMaxDop INT;
+SELECT @InstanceMaxDop = CAST(value_in_use AS INT)
+FROM sys.configurations
+WHERE name = 'max degree of parallelism';
+
+DECLARE @Sql NVARCHAR(MAX) = N'';
+
+SELECT @Sql += N'
 SELECT
-    d.name                                      AS DatabaseName,
-    d.database_id                               AS DatabaseId,
-    dsc.value                                   AS DbScopedMaxDop,
-    instance_maxdop.value_in_use                AS InstanceMaxDop,
+    ' + QUOTENAME(name, '''') + N'           AS DatabaseName,
+    DB_ID(' + QUOTENAME(name, '''') + N')    AS DatabaseId,
+    CAST(dsc.value AS INT)                   AS DbScopedMaxDop,
+    ' + CAST(@InstanceMaxDop AS NVARCHAR(10)) + N'  AS InstanceMaxDop,
     CASE
-        WHEN TRY_CAST(dsc.value AS INT) <> 0
-         AND TRY_CAST(dsc.value AS INT) <> instance_maxdop.value_in_use
-                                                THEN 1 ELSE 0
-    END                                         AS flag_db_maxdop_override
-FROM sys.databases d
-CROSS JOIN sys.configurations instance_maxdop
-OUTER APPLY (
-    SELECT sc.value
-    FROM sys.database_scoped_configurations sc
-    WHERE sc.name = 'MAXDOP'
-      AND sc.database_id = d.database_id
-) dsc
-WHERE d.state_desc  = 'ONLINE'
-  AND d.database_id > 4
-  AND instance_maxdop.name = 'max degree of parallelism'
-ORDER BY d.name;
+        WHEN CAST(dsc.value AS INT) <> 0
+         AND CAST(dsc.value AS INT) <> ' + CAST(@InstanceMaxDop AS NVARCHAR(10)) + N'
+                                             THEN 1 ELSE 0
+    END                                      AS flag_db_maxdop_override
+FROM ' + QUOTENAME(name) + N'.sys.database_scoped_configurations dsc
+WHERE dsc.name = ''MAXDOP''
+UNION ALL'
+FROM sys.databases
+WHERE state_desc = 'ONLINE'
+  AND database_id > 4;
+
+-- Strip trailing UNION ALL
+IF LEN(@Sql) > 0
+BEGIN
+    SET @Sql = LEFT(@Sql, LEN(@Sql) - 9);
+    EXEC sys.sp_executesql @Sql;
+END
 
 -- ── 3. Parallelism-related wait statistics ────────────────────────────────────
 DECLARE @TotalWaitMs BIGINT;

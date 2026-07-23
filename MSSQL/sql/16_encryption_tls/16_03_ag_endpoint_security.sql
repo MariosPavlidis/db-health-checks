@@ -45,8 +45,10 @@ BEGIN
     FROM sys.endpoints e
     JOIN sys.database_mirroring_endpoints te
         ON te.endpoint_id = e.endpoint_id
-    LEFT JOIN sys.endpoint_permissions ep
-        ON ep.major_id = e.endpoint_id
+    LEFT JOIN sys.server_permissions ep
+        ON  ep.major_id  = e.endpoint_id
+        AND ep.class     = 105              -- ENDPOINT class
+        AND ep.type      = 'CO'            -- CONNECT permission
     LEFT JOIN sys.server_principals pr
         ON pr.principal_id = ep.grantee_principal_id
     -- Match certificate by name if connection auth is certificate-based

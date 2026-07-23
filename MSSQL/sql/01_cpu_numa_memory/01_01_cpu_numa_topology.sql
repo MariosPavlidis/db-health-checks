@@ -83,19 +83,23 @@ ORDER BY n.node_id;
 -- ── 3. Scheduler-to-memory-node mapping ──────────────────────────────────────
 --    Shows each NUMA-node/memory-node combination and scheduler counts.
 --    Rows where NumaNodeId != MemoryNodeId indicate cross-node mapping.
+--    memory_node_id comes from sys.dm_os_nodes (not dm_os_schedulers).
 SELECT
     s.parent_node_id                        AS NumaNodeId,
-    s.memory_node_id                        AS MemoryNodeId,
+    n.memory_node_id                        AS MemoryNodeId,
     s.status                                AS SchedulerStatus,
     COUNT(*)                                AS SchedulerCount,
     SUM(s.current_workers_count)            AS CurrentWorkers,
     SUM(s.active_workers_count)             AS ActiveWorkers,
     -- Flag: schedulers on this NUMA node are mapped to a different memory node
-    CASE WHEN s.parent_node_id <> s.memory_node_id THEN 1 ELSE 0 END AS flag_cross_node_mapping
+    CASE WHEN s.parent_node_id <> n.memory_node_id THEN 1 ELSE 0 END AS flag_cross_node_mapping
 FROM sys.dm_os_schedulers s
+JOIN sys.dm_os_nodes n
+    ON  n.node_id = s.parent_node_id
 WHERE s.scheduler_id < 255
-GROUP BY s.parent_node_id, s.memory_node_id, s.status
-ORDER BY s.parent_node_id, s.memory_node_id, s.status;
+  AND n.node_state_desc <> 'ONLINE DAC'
+GROUP BY s.parent_node_id, n.memory_node_id, s.status
+ORDER BY s.parent_node_id, n.memory_node_id, s.status;
 
 -- ── 4. Uneven CPU distribution across NUMA nodes ─────────────────────────────
 --    Compares online schedulers per node against the average.

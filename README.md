@@ -14,6 +14,7 @@ Covers 22 chapters spanning hardware, configuration, performance, security, back
 | SqlServer module | `Install-Module SqlServer -Scope CurrentUser` |
 | SQL Server 2016 or later | Minimum supported version |
 | `VIEW SERVER STATE` + `VIEW DATABASE STATE` | Required for all DMV-based checks |
+| `VIEW SERVER PERFORMANCE STATE` (SQL Server 2022+) | Required for Resource Governor runtime DMV statistics |
 | `SELECT` on `msdb..dbo` schema | Required for backup history, SQL Agent, and suspect page checks |
 | `db_datareader` on each user database | Required for index, statistics, and Query Store checks |
 | WinRM / CIM access | Required for Windows-native checks only — use `-SkipWindowsChecks` to bypass |
@@ -360,6 +361,10 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 | 22_01 | `sql/22_maintenance_governance/22_01_maintenance_coverage.sql` | Maintenance solution coverage — index and statistics maintenance jobs |
 | 22_02 | `sql/22_maintenance_governance/22_02_maintenance_effectiveness.sql` | Recent maintenance job run history and effectiveness indicators |
 | 22_03 | `sql/22_maintenance_governance/22_03_config_ownership.sql` | Configuration drift — sp_configure items changed from recommended defaults |
+| 22_04 | `sql/22_maintenance_governance/22_04_cdc_inventory.sql` | CDC-enabled databases, capture instances, and capture/cleanup Agent job health |
+| 22_05 | `sql/22_maintenance_governance/22_05_replication_inventory.sql` | Publisher/distributor roles, Replication Agent jobs, and replication log holdup |
+| 22_06 | `sql/22_maintenance_governance/22_06_service_broker_health.sql` | Broker state, user queues, activation, and transmission backlog/errors |
+| 22_07 | `sql/22_maintenance_governance/22_07_resource_governor.sql` | Stored/effective Resource Governor configuration and runtime throttling evidence |
 
 ---
 

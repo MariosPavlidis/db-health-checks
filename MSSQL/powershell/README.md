@@ -141,6 +141,10 @@ All SQL files live under `../sql/{chapter}/` relative to the powershell folder.
 | 6.1 | `06_01_tempdb_config.csv` | SQL | TempDB file count, sizes, autogrowth, equal-size check |
 | 6.2 | `06_02_tempdb_capacity.csv` | SQL | TempDB current space usage — version store, user objects, internal |
 | 6.3 | `06_03_tempdb_performance.csv` | SQL | TempDB contention — PFS/GAM/SGAM waits, latch stats |
+| 6.4 | `06_04_version_store_consumers.csv` | SQL | RCSI/SNAPSHOT mapping, version-store usage, and active or old snapshot consumers |
+| 6.5 | `06_05_tempdb_spills.csv` | SQL | Active internal-object allocations and historical Query Store TempDB usage |
+| 6.6 | `06_06_tempdb_metadata_contention.csv` | SQL | PAGELATCH allocation-page classification and memory-optimized TempDB metadata state |
+| 6.7 | `06_07_adr_persistent_version_store.csv` | SQL | ADR state, Persistent Version Store health, and transactions delaying cleanup |
 
 ### Chapter 7 — Transaction Log
 

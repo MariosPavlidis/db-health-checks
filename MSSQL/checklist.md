@@ -476,28 +476,51 @@ Each task should produce exportable output in CSV, Excel, text, JSON, or PowerSh
 - [ ] Collect user-object usage
 - [ ] Collect internal-object usage
 - [ ] Collect version-store usage
-- [ ] Collect Persistent Version Store usage
 - [ ] Collect session-level TempDB usage
-- [ ] Collect task-level TempDB usage
 - [ ] Identify top TempDB-consuming sessions
-- [ ] Identify top TempDB-consuming queries
-- [ ] Identify version-store retention caused by long transactions
 
 ## 6.3 TempDB performance
 
 - [ ] Collect TempDB read latency
 - [ ] Collect TempDB write latency
 - [ ] Collect TempDB log latency
-- [ ] Check PAGELATCH contention
-- [ ] Check PFS contention
-- [ ] Check GAM contention
-- [ ] Check SGAM contention
-- [ ] Check metadata contention
-- [ ] Check sort spills
-- [ ] Check hash spills
-- [ ] Check worktable and workfile activity
 - [ ] Check TempDB autogrowth history
 - [ ] Check TempDB out-of-space events
+
+## 6.4 Version store consumers
+
+- [ ] Map databases with RCSI or SNAPSHOT isolation enabled
+- [ ] Collect version-store usage by database
+- [ ] Identify active transactions generating or accessing row versions
+- [ ] Identify the oldest snapshot transaction and its elapsed time
+- [ ] Associate version consumers with session, login, host, program, and current statement
+- [ ] Flag snapshot transactions older than 15 and 60 minutes
+
+## 6.5 TempDB spills
+
+- [ ] Collect task-level TempDB allocations for active requests
+- [ ] Identify top active internal-object consumers
+- [ ] Associate allocations with current statements, query hashes, and plan hashes
+- [ ] Collect historical Query Store TempDB usage where supported
+- [ ] Calculate execution-weighted historical TempDB allocation
+- [ ] Isolate Query Store collection failures by database
+
+## 6.6 TempDB metadata contention
+
+- [ ] Collect cumulative PAGELATCH waits since instance startup
+- [ ] Classify current TempDB PFS, GAM, and SGAM allocation-page contention
+- [ ] Identify SQL Server 2019+ TempDB system-table metadata contention
+- [ ] Collect memory-optimized TempDB metadata state where supported
+- [ ] Flag material allocation-page or metadata contention
+
+## 6.7 ADR Persistent Version Store
+
+- [ ] Collect Accelerated Database Recovery state by database
+- [ ] Collect Persistent Version Store and online-index version-store size
+- [ ] Collect aborted transaction count and oldest active or aborted transaction
+- [ ] Collect Persistent Version Store cleaner start and end time
+- [ ] Identify long-running transactions that can delay cleanup
+- [ ] Return an explicit not-applicable result on unsupported SQL Server versions
 
 ---
 

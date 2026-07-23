@@ -184,10 +184,10 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 | 06_01 | `sql/06_tempdb/06_01_tempdb_config.sql` | File count, equal sizing, placement, trace flag 1117/1118 |
 | 06_02 | `sql/06_tempdb/06_02_tempdb_capacity.sql` | Current space used vs allocated, version store size |
 | 06_03 | `sql/06_tempdb/06_03_tempdb_performance.sql` | Allocation contention waits, top consumers |
-| 06_04 | `sql/06_tempdb/06_04_version_store_consumers.sql` | Top version store consumers by session and object |
-| 06_05 | `sql/06_tempdb/06_05_tempdb_spills.sql` | Sort and hash spills to TempDB from DMVs and Query Store |
-| 06_06 | `sql/06_tempdb/06_06_tempdb_metadata_contention.sql` | TempDB metadata contention — PAGELATCH waits on system objects |
-| 06_07 | `sql/06_tempdb/06_07_adr_persistent_version_store.sql` | Accelerated Database Recovery persistent version store size and age |
+| 06_04 | `sql/06_tempdb/06_04_version_store_consumers.sql` | RCSI/SNAPSHOT mapping, version-store usage, and active or old snapshot consumers |
+| 06_05 | `sql/06_tempdb/06_05_tempdb_spills.sql` | Active internal-object allocations and historical Query Store TempDB usage |
+| 06_06 | `sql/06_tempdb/06_06_tempdb_metadata_contention.sql` | PAGELATCH allocation-page classification and memory-optimized TempDB metadata state |
+| 06_07 | `sql/06_tempdb/06_07_adr_persistent_version_store.sql` | ADR state, Persistent Version Store health, and transactions delaying cleanup |
 
 ### 07 — Transaction Log
 

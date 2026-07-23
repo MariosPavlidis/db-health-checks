@@ -226,10 +226,10 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 | 6.1 | `06_01_tempdb_config.csv` | SQL | TempDB file count, sizes, autogrowth, equal-size check |
 | 6.2 | `06_02_tempdb_capacity.csv` | SQL | Current space usage — version store, user objects, internal |
 | 6.3 | `06_03_tempdb_performance.csv` | SQL | Allocation contention — PFS/GAM/SGAM waits, latch stats |
-| 6.4 | `06_04_version_store_consumers.csv` | SQL | Top version store consumers by session and object |
-| 6.5 | `06_05_tempdb_spills.csv` | SQL | Sort and hash spills to TempDB from DMVs and Query Store |
-| 6.6 | `06_06_tempdb_metadata_contention.csv` | SQL | TempDB metadata contention — PAGELATCH waits on system objects |
-| 6.7 | `06_07_adr_persistent_version_store.csv` | SQL | Accelerated Database Recovery persistent version store size and age |
+| 6.4 | `06_04_version_store_consumers.csv` | SQL | RCSI/SNAPSHOT mapping, version-store usage, and active or old snapshot consumers |
+| 6.5 | `06_05_tempdb_spills.csv` | SQL | Active internal-object allocations and historical Query Store TempDB usage |
+| 6.6 | `06_06_tempdb_metadata_contention.csv` | SQL | PAGELATCH allocation-page classification and memory-optimized TempDB metadata state |
+| 6.7 | `06_07_adr_persistent_version_store.csv` | SQL | ADR state, Persistent Version Store health, and transactions delaying cleanup |
 
 ### Chapter 07 — Transaction Log
 

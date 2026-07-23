@@ -14,6 +14,28 @@ BEGIN
 END
 GO
 
+-- ── Instance cumulative wait summary (all waits since last restart) ───────────
+SELECT
+    'INSTANCE_TOTAL'                                                            AS WaitType,
+    SUM(ws.waiting_tasks_count)                                                 AS WaitingTasksCount,
+    SUM(ws.wait_time_ms)                                                        AS WaitTimeMs,
+    CASE WHEN SUM(ws.waiting_tasks_count) > 0
+         THEN CAST(SUM(ws.wait_time_ms) * 1.0
+                   / SUM(ws.waiting_tasks_count) AS DECIMAL(18,2))
+         ELSE 0 END                                                             AS AvgWaitMs,
+    SUM(ws.signal_wait_time_ms)                                                 AS SignalWaitTimeMs,
+    SUM(ws.wait_time_ms - ws.signal_wait_time_ms)                              AS ResourceWaitTimeMs,
+    MAX(ws.max_wait_time_ms)                                                    AS MaxWaitTimeMs,
+    CAST(100.00 AS DECIMAL(10,2))                                               AS WaitPct,
+    'SUMMARY'                                                                   AS WaitCategory,
+    DATEDIFF(MINUTE, si.sqlserver_start_time, GETDATE())                       AS UptimeMinutes,
+    si.sqlserver_start_time                                                     AS SqlServerStartTime,
+    GETDATE()                                                                   AS CollectedAt
+FROM sys.dm_os_wait_stats AS ws
+CROSS JOIN (SELECT sqlserver_start_time FROM sys.dm_os_sys_info) AS si
+WHERE ws.wait_time_ms > 0;
+
+-- ── Per-wait-type breakdown (benign waits excluded) ───────────────────────────
 WITH BenignWaits AS (
     SELECT wait_type FROM (VALUES
         ('SLEEP_TASK'),

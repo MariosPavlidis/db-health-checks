@@ -335,6 +335,22 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 
 ---
 
+## Operational Utilities
+
+Scripts for use during a health check run. Not part of the collected output — run interactively in a separate SSMS or ADS window.
+
+### Session Monitor and Kill
+
+**`MSSQL/sql/00_session_monitor/00_01_session_monitor.sql`**
+
+Open in a separate window on the same instance while health check scripts are running. Refresh every 10–30 seconds to watch active sessions and kill any that are loading the server.
+
+Targets sessions running the fragmentation scan (`11_01`) and index usage query (`11_03`), which are the most I/O-intensive health check scripts. Includes a ready-to-run `KILL <spid>;` column and a catch-all view of all sessions running longer than 30 seconds.
+
+> **Production note:** `11_01_fragmentation.sql` uses `sys.dm_db_index_physical_stats` in `LIMITED` mode inside a cursor loop across all user databases. On a large instance this can run for several minutes and generate sustained physical reads. Kill immediately if `PhysicalReads` is spiking or `WaitType = PAGEIOLATCH_SH` is sustained.
+
+---
+
 ## Permissions Reference
 
 ```sql

@@ -139,6 +139,32 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 
 ## Chapters and Checks
 
+### Utility 00 — Operational Tools
+
+Scripts for use during a health check run, not part of the collected output.
+
+| Section | Output CSV | Source | Description |
+|---|---|---|---|
+| 00.1 | *(none — run interactively)* | SQL | Session monitor and KILL helper for active health check sessions |
+
+**00.1 — Session Monitor and Kill** (`sql/00_session_monitor/00_01_session_monitor.sql`)
+
+Open in a separate SSMS/ADS window on the same instance while health check scripts are running. Refresh every 10–30 seconds.
+
+The query surfaces all sessions matching the fragmentation and index usage health check scripts (`11_01_fragmentation`, `11_03_unused_indexes`) and any other health check cursor loops. It includes a ready-to-run `KILL <spid>;` column.
+
+> **Production warning:** `11_01_fragmentation.sql` calls `sys.dm_db_index_physical_stats` in `LIMITED` mode inside a cursor loop across all user databases. Even in LIMITED mode this reads allocation pages for every index in every database and can run for several minutes on large instances. Kill if `PhysicalReads` is climbing fast, `WaitType = PAGEIOLATCH_SH` is sustained, or the session is blocking other work.
+
+| Signal | Threshold | Action |
+|---|---|---|
+| `ElapsedSec` climbing on fragmentation script | > 2 min | Consider killing |
+| `PhysicalReads` spiking | Thousands/sec sustained | Kill immediately |
+| `WaitType = PAGEIOLATCH_SH` | Sustained | Kill — reading data pages |
+| `WaitType = ASYNC_NETWORK_IO` | Any | Safe — results returning |
+| `BlockedBy > 0` | Any | Kill the HC session |
+
+---
+
 ### Chapter 01 — CPU, NUMA, and Memory
 
 | Section | Output CSV | Source | Description |
@@ -408,6 +434,6 @@ All `Invoke-Sqlcmd` calls use `-TrustServerCertificate`. If TLS errors persist, 
 ## Notes
 
 - **Read-only** — no `INSERT`, `UPDATE`, `DELETE`, `DBCC`, `ALTER INDEX`, or `UPDATE STATISTICS` statements are executed.
-- **Index fragmentation** (11.1) uses `LIMITED` scan mode — reads allocation pages only, no data page I/O.
+- **Index fragmentation** (11.1) uses `LIMITED` scan mode — reads allocation pages only, no data page I/O. On large instances with many databases this can still run for several minutes. Use `sql/00_session_monitor/00_01_session_monitor.sql` to watch and kill the session if needed.
 - **Windows checks** include all WMI/CIM, event log, registry, certificate store, and `setspn.exe` sections. Pass `-SkipWindowsChecks` when running without WinRM or local admin access on the target.
 - **SQL authentication** — pass a `PSCredential` via `-SqlCredential`. If omitted, Windows Integrated Authentication is used.

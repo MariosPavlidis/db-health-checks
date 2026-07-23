@@ -21,40 +21,33 @@ BEGIN
         e.name                                                  AS EndpointName,
         e.state_desc                                            AS EndpointState,
         e.type_desc                                             AS EndpointType,
-        te.port                                                 AS Port,
-        te.connection_auth_desc                                 AS AuthType,
-        te.encryption_auth_desc                                 AS EncryptionType,
-        te.encryption_algorithm_desc                            AS EncryptionAlgorithm,
+        -- Port lives in sys.tcp_endpoints, not sys.database_mirroring_endpoints
+        tcp.port                                                AS Port,
+        me.role_desc                                            AS EndpointRole,
+        me.connection_auth_desc                                 AS AuthType,
+        me.encryption_algorithm_desc                            AS EncryptionAlgorithm,
+        me.is_encryption_enabled                                AS IsEncryptionEnabled,
         -- CONNECT permission details
         ep.state_desc                                           AS PermissionState,
-        ep.permission_name                                      AS Permission,
         pr.name                                                 AS Grantee,
         pr.type_desc                                            AS GranteeType,
-        -- Certificate info (only populated when certificate-based auth is configured)
-        c.name                                                  AS CertificateName,
-        c.expiry_date                                           AS CertExpiry,
-        DATEDIFF(DAY, GETDATE(), c.expiry_date)                 AS CertDaysUntilExpiry,
         CASE
-            WHEN c.expiry_date IS NULL              THEN 'N/A'
-            WHEN c.expiry_date < GETDATE()          THEN 'EXPIRED'
-            WHEN DATEDIFF(DAY, GETDATE(), c.expiry_date) < 30  THEN 'CRITICAL'
-            WHEN DATEDIFF(DAY, GETDATE(), c.expiry_date) < 90  THEN 'HIGH'
-            WHEN DATEDIFF(DAY, GETDATE(), c.expiry_date) < 180 THEN 'WARNING'
-            ELSE 'OK'
-        END                                                     AS CertExpiryFlag
+            WHEN ep.state_desc IS NULL          THEN 'NO_CONNECT_GRANT'
+            WHEN me.is_encryption_enabled = 0   THEN 'ENCRYPTION_DISABLED'
+            ELSE ''
+        END                                                     AS EndpointFlag
     FROM sys.endpoints e
-    JOIN sys.database_mirroring_endpoints te
-        ON te.endpoint_id = e.endpoint_id
+    JOIN sys.database_mirroring_endpoints me
+        ON me.endpoint_id = e.endpoint_id
+    LEFT JOIN sys.tcp_endpoints tcp
+        ON tcp.endpoint_id = e.endpoint_id
     LEFT JOIN sys.server_permissions ep
         ON  ep.major_id  = e.endpoint_id
         AND ep.class     = 105              -- ENDPOINT class
         AND ep.type      = 'CO'            -- CONNECT permission
     LEFT JOIN sys.server_principals pr
         ON pr.principal_id = ep.grantee_principal_id
-    -- Match certificate by name if connection auth is certificate-based
-    LEFT JOIN sys.certificates c
-        ON c.name = te.connection_auth_desc
-    ORDER BY e.name;
+    ORDER BY e.name, pr.name;
 END
 ELSE
 BEGIN

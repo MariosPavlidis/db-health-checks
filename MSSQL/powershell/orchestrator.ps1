@@ -24,7 +24,11 @@ param(
 
     # Skip all Windows-native checks (WMI, event logs, cluster, registry).
     # Use when running remotely without WinRM/CIM access to the target host.
-    [switch]$SkipWindowsChecks
+    [switch]$SkipWindowsChecks,
+
+    # Maximum seconds a chapter is allowed to run before it is killed and logged as TIMEOUT.
+    # Also controls the per-query SQL timeout inside Invoke-HCSql/Invoke-HCSection.
+    [int]$ChapterTimeoutSec = 120
 )
 
 Set-StrictMode -Version Latest
@@ -107,17 +111,9 @@ $summary = [System.Collections.Generic.List[PSCustomObject]]::new()
 foreach ($script in $chapterScripts) {
     $chapterLabel = $script.BaseName
     Write-HCLog -OutputPath $runFolder -Chapter $chapterLabel -Section '' `
-        -Status 'INFO' -Message "Starting chapter: $chapterLabel"
+        -Status 'INFO' -Message "Starting chapter: $chapterLabel (timeout: ${ChapterTimeoutSec}s)"
 
     $chapterStart = Get-Date
-
-    $splat = @{
-        SqlInstance        = $SqlInstance
-        OutputPath         = $runFolder
-        SkipWindowsChecks  = $SkipWindowsChecks.IsPresent
-        SqlScriptRoot      = Join-Path $PSScriptRoot '..'
-    }
-    if ($SqlCredential) { $splat['SqlCredential'] = $SqlCredential }
 
     $chapterResult = [PSCustomObject]@{
         Chapter        = $chapterLabel
@@ -129,19 +125,71 @@ foreach ($script in $chapterScripts) {
         Error          = ''
     }
 
-    try {
-        $sectionResults = & $script.FullName @splat
-        $arr = @($sectionResults)
-        $chapterResult.SectionsRun    = $arr.Count
-        $chapterResult.SectionsOK     = @($arr | Where-Object { $_.Status -eq 'OK' }).Count
-        $chapterResult.SectionsFailed = @($arr | Where-Object { $_.Status -eq 'ERROR' }).Count
-        if ($chapterResult.SectionsFailed -gt 0) { $chapterResult.Status = 'PARTIAL' }
+    # ── Serialize credential to a temp file so the job process can load it ─────
+    $credTempFile = $null
+    if ($SqlCredential) {
+        $credTempFile = [System.IO.Path]::GetTempFileName() + '.xml'
+        $SqlCredential | Export-Clixml -Path $credTempFile
     }
-    catch {
-        $chapterResult.Status = 'ERROR'
-        $chapterResult.Error  = $_.Exception.Message
+
+    $scriptFullPath   = $script.FullName
+    $jobSqlScriptRoot = Join-Path $PSScriptRoot '..'
+    $jobRunFolder     = $runFolder
+    $jobSkipWin       = $SkipWindowsChecks.IsPresent
+    $jobTimeout       = $ChapterTimeoutSec
+
+    $job = Start-Job -ScriptBlock {
+        param($scriptPath, $sqlInst, $outPath, $skipWin, $sqlRoot, $credFile, $querySec)
+
+        $params = @{
+            SqlInstance       = $sqlInst
+            OutputPath        = $outPath
+            SkipWindowsChecks = $skipWin
+            SqlScriptRoot     = $sqlRoot
+            QueryTimeout      = $querySec
+        }
+        if ($credFile -and (Test-Path $credFile)) {
+            $params['SqlCredential'] = Import-Clixml -Path $credFile
+        }
+        & $scriptPath @params
+
+    } -ArgumentList $scriptFullPath, $SqlInstance, $jobRunFolder, $jobSkipWin,
+                    $jobSqlScriptRoot, $credTempFile, $ChapterTimeoutSec
+
+    $completed = Wait-Job $job -Timeout $ChapterTimeoutSec
+
+    if (-not $completed) {
+        # Chapter exceeded the wall-clock timeout — kill and flag
+        Stop-Job  $job
+        Remove-Job $job -Force
+        if ($credTempFile -and (Test-Path $credTempFile)) { Remove-Item $credTempFile -Force }
+
+        $chapterResult.Status = 'TIMEOUT'
+        $chapterResult.Error  = "Chapter exceeded ${ChapterTimeoutSec}s timeout — killed."
         Write-HCLog -OutputPath $runFolder -Chapter $chapterLabel -Section '' `
-            -Status 'ERROR' -Message "Chapter failed: $($_.Exception.Message)"
+            -Status 'TIMEOUT' -Message $chapterResult.Error
+    }
+    else {
+        try {
+            $sectionResults = Receive-Job $job -ErrorAction Stop
+            Remove-Job $job -Force
+            if ($credTempFile -and (Test-Path $credTempFile)) { Remove-Item $credTempFile -Force }
+
+            $arr = @($sectionResults)
+            $chapterResult.SectionsRun    = $arr.Count
+            $chapterResult.SectionsOK     = @($arr | Where-Object { $_.Status -eq 'OK'    }).Count
+            $chapterResult.SectionsFailed = @($arr | Where-Object { $_.Status -eq 'ERROR' }).Count
+            if ($chapterResult.SectionsFailed -gt 0) { $chapterResult.Status = 'PARTIAL' }
+        }
+        catch {
+            Remove-Job $job -Force -ErrorAction SilentlyContinue
+            if ($credTempFile -and (Test-Path $credTempFile)) { Remove-Item $credTempFile -Force }
+
+            $chapterResult.Status = 'ERROR'
+            $chapterResult.Error  = $_.Exception.Message
+            Write-HCLog -OutputPath $runFolder -Chapter $chapterLabel -Section '' `
+                -Status 'ERROR' -Message "Chapter failed: $($_.Exception.Message)"
+        }
     }
 
     $chapterResult.DurationSec = [math]::Round(((Get-Date) - $chapterStart).TotalSeconds, 1)
@@ -156,12 +204,13 @@ foreach ($script in $chapterScripts) {
 $summaryPath = Join-Path $runFolder 'hc_summary.csv'
 $summary | Export-Csv -Path $summaryPath -NoTypeInformation -Encoding UTF8
 
-$totalOK     = @($summary | Where-Object { $_.Status -eq 'OK'      }).Count
-$totalPartial= @($summary | Where-Object { $_.Status -eq 'PARTIAL'  }).Count
-$totalFailed = @($summary | Where-Object { $_.Status -eq 'ERROR'    }).Count
+$totalOK      = @($summary | Where-Object { $_.Status -eq 'OK'      }).Count
+$totalPartial = @($summary | Where-Object { $_.Status -eq 'PARTIAL'  }).Count
+$totalFailed  = @($summary | Where-Object { $_.Status -eq 'ERROR'    }).Count
+$totalTimeout = @($summary | Where-Object { $_.Status -eq 'TIMEOUT'  }).Count
 
 Write-HCLog -OutputPath $runFolder -Chapter 'ORCHESTRATOR' -Section '' `
-    -Status 'INFO' -Message "Health check complete. Chapters: OK=$totalOK  PARTIAL=$totalPartial  FAILED=$totalFailed"
+    -Status 'INFO' -Message "Health check complete. Chapters: OK=$totalOK  PARTIAL=$totalPartial  FAILED=$totalFailed  TIMEOUT=$totalTimeout"
 Write-HCLog -OutputPath $runFolder -Chapter 'ORCHESTRATOR' -Section '' `
     -Status 'INFO' -Message "Output folder: $runFolder"
 Write-HCLog -OutputPath $runFolder -Chapter 'ORCHESTRATOR' -Section '' `

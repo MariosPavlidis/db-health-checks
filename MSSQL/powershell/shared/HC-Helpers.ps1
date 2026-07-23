@@ -19,7 +19,8 @@ function Invoke-HCSql {
     .PARAMETER SqlCredential
         Optional PSCredential for SQL Authentication. If omitted, Windows Auth is used.
     .PARAMETER QueryTimeout
-        Query timeout in seconds. Default: 300.
+        Query timeout in seconds. Default: 120. Queries that exceed this are cancelled
+        and logged as ERROR — matching the orchestrator chapter-level stall threshold.
     #>
     [CmdletBinding()]
     [OutputType([System.Data.DataTable])]
@@ -28,7 +29,7 @@ function Invoke-HCSql {
         [string]$Database      = 'master',
         [Parameter(Mandatory)][string]$SqlFile,
         [System.Management.Automation.PSCredential]$SqlCredential,
-        [int]$QueryTimeout     = 300
+        [int]$QueryTimeout     = 120
     )
 
     if (-not (Test-Path $SqlFile)) {
@@ -91,7 +92,7 @@ function Invoke-HCSqlText {
         [string]$Database      = 'master',
         [Parameter(Mandatory)][string]$Query,
         [System.Management.Automation.PSCredential]$SqlCredential,
-        [int]$QueryTimeout     = 300
+        [int]$QueryTimeout     = 120
     )
 
     $splat = @{
@@ -263,7 +264,7 @@ function Write-HCLog {
         [Parameter(Mandatory)][string]$OutputPath,
         [string]$Chapter = '',
         [string]$Section = '',
-        [ValidateSet('INFO','OK','WARN','ERROR','SKIP','PARTIAL')]
+        [ValidateSet('INFO','OK','WARN','ERROR','SKIP','PARTIAL','TIMEOUT')]
         [string]$Status  = 'INFO',
         [Parameter(Mandatory)][string]$Message
     )
@@ -281,6 +282,7 @@ function Write-HCLog {
         'ERROR'   { 'Red'     }
         'SKIP'    { 'Cyan'    }
         'PARTIAL' { 'Magenta' }
+        'TIMEOUT' { 'Red'     }
         default   { 'Gray'    }
     }
     Write-Host $line -ForegroundColor $colour
@@ -310,7 +312,7 @@ function Invoke-HCSection {
     .PARAMETER SqlCredential
         Optional SQL credential.
     .PARAMETER QueryTimeout
-        Seconds. Default 300.
+        Seconds before the SQL query is cancelled. Default 120.
     #>
     [CmdletBinding()]
     param(
@@ -322,7 +324,7 @@ function Invoke-HCSection {
         [Parameter(Mandatory)][string]$SectionName,
         [string]$Chapter       = '',
         [System.Management.Automation.PSCredential]$SqlCredential,
-        [int]$QueryTimeout     = 300
+        [int]$QueryTimeout     = 120
     )
 
     $result = [PSCustomObject]@{

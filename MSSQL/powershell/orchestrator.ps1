@@ -27,8 +27,9 @@ param(
     [switch]$SkipWindowsChecks,
 
     # Maximum seconds a chapter is allowed to run before it is killed and logged as TIMEOUT.
-    # Also controls the per-query SQL timeout inside Invoke-HCSql/Invoke-HCSection.
-    [int]$ChapterTimeoutSec = 120
+    # Must be larger than the per-query SQL timeout (120 s) to allow multi-query chapters
+    # enough time to complete. Default: 600 s (10 min).
+    [int]$ChapterTimeoutSec = 600
 )
 
 Set-StrictMode -Version Latest

@@ -386,6 +386,18 @@ On older versions the guarded block is skipped and the CSV will be empty or cont
 
 ## Troubleshooting
 
+**Scripts are blocked — "file is not digitally signed" or `Write-HCLog` not recognised**
+Windows blocks scripts downloaded from the internet. Unblock all scripts before running:
+```powershell
+Get-ChildItem "MSSQL\powershell\" -Recurse -Filter "*.ps1" | Unblock-File
+```
+Then run the orchestrator **from inside the `powershell\` folder**:
+```powershell
+cd MSSQL\powershell
+.\orchestrator.ps1 -SqlInstance "SERVER01"
+```
+`Write-HCLog is not recognised` means `shared\HC-Helpers.ps1` was not dot-sourced — caused by running from the wrong directory or not unblocking files first.
+
 **`The 'SqlServer' PowerShell module is required`**
 Run `Install-Module SqlServer -Scope CurrentUser` then retry.
 

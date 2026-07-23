@@ -417,6 +417,18 @@ Minimum supported version is **SQL Server 2016**. Scripts that use features intr
 
 ## Troubleshooting
 
+**Scripts are blocked — "file is not digitally signed" or `Write-HCLog` not recognised**
+Windows blocks scripts downloaded from the internet. Unblock all scripts before running:
+```powershell
+Get-ChildItem ".\powershell\" -Recurse -Filter "*.ps1" | Unblock-File
+```
+Then run the orchestrator **from inside the `powershell\` folder** — `$PSScriptRoot` must resolve correctly for the shared helpers to load:
+```powershell
+cd MSSQL\powershell
+.\orchestrator.ps1 -SqlInstance "SERVER01"
+```
+If you see `Write-HCLog is not recognised`, the helpers file (`shared\HC-Helpers.ps1`) was not dot-sourced. This is almost always caused by running the script from the wrong working directory or not unblocking all files first.
+
 **`The 'SqlServer' PowerShell module is required`**
 Run `Install-Module SqlServer -Scope CurrentUser` then retry.
 

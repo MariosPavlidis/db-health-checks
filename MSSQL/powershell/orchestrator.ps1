@@ -159,13 +159,13 @@ foreach ($script in $chapterScripts) {
     $completed = Wait-Job $job -Timeout $ChapterTimeoutSec
 
     if (-not $completed) {
-        # Chapter exceeded the wall-clock timeout — kill and flag
+        # Chapter exceeded the wall-clock timeout - kill and flag
         Stop-Job  $job
         Remove-Job $job -Force
         if ($credTempFile -and (Test-Path $credTempFile)) { Remove-Item $credTempFile -Force }
 
         $chapterResult.Status = 'TIMEOUT'
-        $chapterResult.Error  = "Chapter exceeded ${ChapterTimeoutSec}s timeout — killed."
+        $chapterResult.Error  = "Chapter exceeded ${ChapterTimeoutSec}s timeout - killed."
         Write-HCLog -OutputPath $runFolder -Chapter $chapterLabel -Section '' `
             -Status 'TIMEOUT' -Message $chapterResult.Error
     }

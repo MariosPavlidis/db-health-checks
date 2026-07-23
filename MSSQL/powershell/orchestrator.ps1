@@ -127,43 +127,40 @@ foreach ($script in $chapterScripts) {
         Error          = ''
     }
 
-    # ── Serialize credential to a temp file so the job process can load it ─────
-    $credTempFile = $null
-    if ($SqlCredential) {
-        $credTempFile = [System.IO.Path]::GetTempFileName() + '.xml'
-        $SqlCredential | Export-Clixml -Path $credTempFile
-    }
-
+    # ── Run chapter in a PowerShell runspace (thread in this process) ────────
+    # Runspaces share the parent process so module DLLs are already in memory —
+    # startup is near-instant vs. Start-Job which spawns a new process and must
+    # reload every module from disk per chapter.
     $scriptFullPath   = $script.FullName
     $jobSqlScriptRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-    $jobRunFolder     = (Resolve-Path $runFolder).Path   # absolute — job has a different working dir
-    $jobSkipWin       = $SkipWindowsChecks.IsPresent
-    $jobTimeout       = $ChapterTimeoutSec
+    $jobRunFolder     = (Resolve-Path $runFolder).Path
 
-    $job = Start-Job -ScriptBlock {
-        param($scriptPath, $sqlInst, $outPath, $skipWin, $sqlRoot, $credFile)
-
+    $ps = [System.Management.Automation.PowerShell]::Create()
+    [void]$ps.AddScript({
+        param($scriptPath, $sqlInst, $outPath, $skipWin, $sqlRoot, $cred)
         $params = @{
             SqlInstance       = $sqlInst
             OutputPath        = $outPath
             SkipWindowsChecks = $skipWin
             SqlScriptRoot     = $sqlRoot
         }
-        if ($credFile -and (Test-Path $credFile)) {
-            $params['SqlCredential'] = Import-Clixml -Path $credFile
-        }
+        if ($cred) { $params['SqlCredential'] = $cred }
         & $scriptPath @params
+    })
+    [void]$ps.AddParameter('scriptPath', $scriptFullPath)
+    [void]$ps.AddParameter('sqlInst',    $SqlInstance)
+    [void]$ps.AddParameter('outPath',    $jobRunFolder)
+    [void]$ps.AddParameter('skipWin',    $SkipWindowsChecks.IsPresent)
+    [void]$ps.AddParameter('sqlRoot',    $jobSqlScriptRoot)
+    [void]$ps.AddParameter('cred',       $SqlCredential)   # passed directly — no temp file needed
 
-    } -ArgumentList $scriptFullPath, $SqlInstance, $jobRunFolder, $jobSkipWin,
-                    $jobSqlScriptRoot, $credTempFile
-
-    $completed = Wait-Job $job -Timeout $ChapterTimeoutSec
+    $asyncResult = $ps.BeginInvoke()
+    $completed   = $asyncResult.AsyncWaitHandle.WaitOne(
+                       [TimeSpan]::FromSeconds($ChapterTimeoutSec))
 
     if (-not $completed) {
-        # Chapter exceeded the wall-clock timeout - kill and flag
-        Stop-Job  $job
-        Remove-Job $job -Force
-        if ($credTempFile -and (Test-Path $credTempFile)) { Remove-Item $credTempFile -Force }
+        $ps.Stop()
+        $ps.Dispose()
 
         $chapterResult.Status = 'TIMEOUT'
         $chapterResult.Error  = "Chapter exceeded ${ChapterTimeoutSec}s timeout - killed."
@@ -172,9 +169,8 @@ foreach ($script in $chapterScripts) {
     }
     else {
         try {
-            $sectionResults = Receive-Job $job -ErrorAction Stop
-            Remove-Job $job -Force
-            if ($credTempFile -and (Test-Path $credTempFile)) { Remove-Item $credTempFile -Force }
+            $sectionResults = $ps.EndInvoke($asyncResult)
+            $ps.Dispose()
 
             $arr = @($sectionResults)
             $chapterResult.SectionsRun    = $arr.Count
@@ -183,8 +179,7 @@ foreach ($script in $chapterScripts) {
             if ($chapterResult.SectionsFailed -gt 0) { $chapterResult.Status = 'PARTIAL' }
         }
         catch {
-            Remove-Job $job -Force -ErrorAction SilentlyContinue
-            if ($credTempFile -and (Test-Path $credTempFile)) { Remove-Item $credTempFile -Force }
+            $ps.Dispose()
 
             $chapterResult.Status = 'ERROR'
             $chapterResult.Error  = $_.Exception.Message

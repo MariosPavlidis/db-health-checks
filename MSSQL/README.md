@@ -393,19 +393,66 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 
 ## Permissions Reference
 
+### Create the login
+
 ```sql
--- Server level
-GRANT VIEW SERVER STATE   TO [health_check_login];
-GRANT VIEW ANY DATABASE   TO [health_check_login];
+-- Windows Auth (recommended for domain environments)
+CREATE LOGIN [DOMAIN\health_check_svc] FROM WINDOWS;
 
--- msdb (backup history, SQL Agent, suspect pages)
-USE msdb;
-GRANT SELECT ON SCHEMA::dbo TO [health_check_login];
-
--- Each user database (index, statistics, Query Store)
--- Option A: add to db_datareader in each database
--- Option B: GRANT VIEW DATABASE STATE at server level (covers DMVs)
+-- SQL Auth (use when Windows Auth is not available)
+CREATE LOGIN [health_check_login]
+    WITH PASSWORD    = 'ReplaceWithStrongPassword!',
+         CHECK_POLICY = ON,
+         CHECK_EXPIRATION = ON;
 ```
+
+### Grant server-level permissions
+
+```sql
+-- Required for all DMV-based checks
+GRANT VIEW SERVER STATE TO [health_check_login];
+GRANT VIEW ANY DATABASE TO [health_check_login];
+```
+
+### Grant msdb access
+
+Required for backup history, SQL Agent, and suspect page checks.
+
+```sql
+USE msdb;
+CREATE USER [health_check_login] FOR LOGIN [health_check_login];
+GRANT SELECT ON SCHEMA::dbo TO [health_check_login];
+```
+
+### Grant user database access
+
+Required for index, statistics, and Query Store checks.
+
+```sql
+-- Run for each user database, or script across all databases:
+USE [YourDatabase];
+CREATE USER [health_check_login] FOR LOGIN [health_check_login];
+ALTER ROLE db_datareader ADD MEMBER [health_check_login];
+```
+
+To script across all user databases at once:
+
+```sql
+DECLARE @sql NVARCHAR(MAX) = N'';
+SELECT @sql += N'
+USE ' + QUOTENAME(name) + N';
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N''health_check_login'')
+    CREATE USER [health_check_login] FOR LOGIN [health_check_login];
+ALTER ROLE db_datareader ADD MEMBER [health_check_login];
+'
+FROM sys.databases
+WHERE state_desc = 'ONLINE'
+  AND database_id > 4;   -- exclude system databases
+
+EXEC sys.sp_executesql @sql;
+```
+
+> `VIEW SERVER STATE` alone covers most DMV-based checks. `db_datareader` is only needed for index, statistics, and Query Store sections that query catalog tables directly.
 
 ---
 

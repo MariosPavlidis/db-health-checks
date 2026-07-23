@@ -55,10 +55,12 @@ if ($computerName -in @('.', '(local)', 'localhost')) { $computerName = $env:COM
 
 # ── 20.1 Cluster overview ──────────────────────────────────────────────────────
 try {
-    $cluster   = Get-Cluster -Name $computerName -ErrorAction SilentlyContinue
+    # Try local cluster service first (most reliable on a cluster node,
+    # and avoids WMI token issues when running inside Start-Job).
+    $clusterErrVar = @()
+    $cluster = Get-Cluster -ErrorAction SilentlyContinue -ErrorVariable +clusterErrVar
     if (-not $cluster) {
-        # May be running directly on a cluster node
-        $cluster = Get-Cluster -ErrorAction SilentlyContinue
+        $cluster = Get-Cluster -Name $computerName -ErrorAction SilentlyContinue -ErrorVariable +clusterErrVar
     }
 
     if ($cluster) {
@@ -107,8 +109,9 @@ try {
             -SqlInstance $SqlInstance))
     }
     else {
+        $errDetail = if ($clusterErrVar) { " Errors: $(($clusterErrVar | ForEach-Object { $_.Exception.Message }) -join '; ')" } else { '' }
         Write-HCLog -OutputPath $OutputPath -Chapter $chapter -Section '20_01' `
-            -Status 'WARN' -Message "No cluster found for host '$computerName'. Instance may not be clustered."
+            -Status 'WARN' -Message "No cluster found for host '$computerName'. Instance may not be clustered.$errDetail"
     }
 }
 catch {

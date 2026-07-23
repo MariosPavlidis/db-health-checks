@@ -85,8 +85,8 @@ WITH IndexCols AS (
         i.is_unique, i.is_primary_key, i.is_unique_constraint, i.filter_definition
 )
 SELECT
-    DB_NAME()                           AS DatabaseName,
-    OBJECT_NAME(a.object_id)            AS TableName,
+    DB_NAME()                                                       AS DatabaseName,
+    OBJECT_SCHEMA_NAME(a.object_id) + '.' + OBJECT_NAME(a.object_id) AS TableName,
     a.IndexName                         AS Index1Name,
     a.KeyCols                           AS Index1KeyCols,
     a.IncludeCols                       AS Index1IncludeCols,
@@ -165,8 +165,8 @@ WITH IndexCols AS (
     WHERE i.type > 0
 )
 SELECT
-    DB_NAME()                           AS DatabaseName,
-    OBJECT_NAME(a.object_id)            AS TableName,
+    DB_NAME()                                                       AS DatabaseName,
+    OBJECT_SCHEMA_NAME(a.object_id) + '.' + OBJECT_NAME(a.object_id) AS TableName,
     a.IndexName                         AS Index1Name,
     a.KeyCols                           AS Index1KeyCols,
     a.IncludeCols                       AS Index1IncludeCols,

@@ -1662,6 +1662,45 @@ Collect at least the previous 90 days.
 - [ ] Identify obsolete jobs and scripts
 - [ ] Archive and remove unused operational code where approved
 
+## 22.4 Change Data Capture
+
+- [ ] Collect CDC enabled state for every database
+- [ ] Collect capture instances, source tables, and net-changes support
+- [ ] Collect capture and cleanup job configuration
+- [ ] Collect Agent job enabled state and last execution outcome
+- [ ] Identify missing, disabled, or recently failed CDC jobs
+- [ ] Account for the Replication Log Reader Agent when transactional replication supplies CDC capture
+- [ ] Identify CDC-enabled databases where log reuse is waiting on REPLICATION
+
+## 22.5 SQL Server Replication
+
+- [ ] Collect published, merge-published, and distribution database roles
+- [ ] Collect local Snapshot, Log Reader, Distribution, Merge, and Queue Reader Agent jobs
+- [ ] Collect Replication Agent enabled state, owner, and last execution outcome
+- [ ] Identify disabled or recently failed local Replication Agent jobs
+- [ ] Identify databases where log reuse is waiting on REPLICATION
+- [ ] Derive subscriber topology from Replication Agent and topology metadata rather than sys.databases.is_subscribed
+
+## 22.6 Service Broker
+
+- [ ] Collect database Broker enabled state, Broker GUID, and conversation priority setting
+- [ ] Collect user queues and activation configuration
+- [ ] Identify queues with receive or enqueue disabled
+- [ ] Collect transmission backlog, error counts, status, and oldest message age
+- [ ] Collect conversation endpoint state counts
+- [ ] Report inaccessible databases or per-database collection errors
+
+## 22.7 Resource Governor
+
+- [ ] Collect stored and effective Resource Governor state
+- [ ] Collect classifier function configuration
+- [ ] Collect custom resource pools and workload groups
+- [ ] Collect CPU, memory, I/O, and effective MAXDOP settings
+- [ ] Collect queued requests, queued reduced memory grants, and request limits
+- [ ] Identify configuration pending RECONFIGURE
+- [ ] Collect runtime pool and workload-group pressure statistics where permissions allow
+- [ ] Grant VIEW SERVER PERFORMANCE STATE for runtime DMV statistics on SQL Server 2022 or later
+
 ---
 
 # 23. Final Assessment and Recommendations

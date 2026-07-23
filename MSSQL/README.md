@@ -35,6 +35,7 @@ sql/                ← standalone T-SQL scripts (run directly in SSMS or ADS)
 | SqlServer module | `Install-Module SqlServer -Scope CurrentUser` |
 | SQL Server 2016 or later | Minimum supported version |
 | `VIEW SERVER STATE` + `VIEW DATABASE STATE` | Required for all DMV-based checks |
+| `VIEW SERVER PERFORMANCE STATE` (SQL Server 2022+) | Required for Resource Governor runtime DMV statistics |
 | `SELECT` on `msdb..dbo` schema | Required for backup history, SQL Agent, and suspect page checks |
 | `db_datareader` on each user database | Required for index, statistics, and Query Store checks |
 | WinRM / CIM access | Required for Windows-native checks — use `-SkipWindowsChecks` to bypass |
@@ -408,6 +409,10 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 | 22.1 | `22_01_maintenance_coverage.csv` | SQL | Databases without a detected maintenance plan or Agent job |
 | 22.2 | `22_02_maintenance_effectiveness.csv` | SQL | Index maintenance job history — success rate, last run |
 | 22.3 | `22_03_config_ownership.csv` | SQL | Non-default `sp_configure` values, trace flags, change history |
+| 22.4 | `22_04_cdc_inventory.csv` | SQL | CDC-enabled databases, capture instances, and capture/cleanup Agent job health |
+| 22.5 | `22_05_replication_inventory.csv` | SQL | Publisher/distributor roles, Replication Agent jobs, and replication log holdup |
+| 22.6 | `22_06_service_broker_health.csv` | SQL | Broker state, user queues, activation, and transmission backlog/errors |
+| 22.7 | `22_07_resource_governor.csv` | SQL | Stored/effective Resource Governor configuration and runtime throttling evidence |
 
 ---
 

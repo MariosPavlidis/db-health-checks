@@ -1,6 +1,6 @@
 # =============================================================================
 # 22_maintenance_governance.ps1 — Chapter 22: Maintenance and Operational Governance
-# Checklist sections: 22.1 – 22.3
+# Checklist sections: 22.1 – 22.7
 # All sections execute SQL files. Sections 22.1 and 22.2 use the msdb
 # database context; 22.3 queries both msdb and master (via cross-db refs
 # within the SQL file itself against sys.databases / sys.certificates).
@@ -56,6 +56,44 @@ $results.Add((Invoke-HCSection @sqlSplat `
     -OutputPath  $OutputPath `
     -SectionId   '22_03' `
     -SectionName 'config_ownership' `
+    -Chapter     $chapter))
+
+# ── 22.4 Change Data Capture inventory and Agent jobs ─────────────────────────
+$results.Add((Invoke-HCSection @sqlSplat `
+    -Database     'master' `
+    -SqlFile      (Join-Path $sqlDir '22_04_cdc_inventory.sql') `
+    -OutputPath   $OutputPath `
+    -SectionId    '22_04' `
+    -SectionName  'cdc_inventory' `
+    -Chapter      $chapter `
+    -QueryTimeout 600))
+
+# ── 22.5 SQL Server Replication roles and Agent jobs ──────────────────────────
+$results.Add((Invoke-HCSection @sqlSplat `
+    -Database    'master' `
+    -SqlFile     (Join-Path $sqlDir '22_05_replication_inventory.sql') `
+    -OutputPath  $OutputPath `
+    -SectionId   '22_05' `
+    -SectionName 'replication_inventory' `
+    -Chapter     $chapter))
+
+# ── 22.6 Service Broker queues and transmission backlog ───────────────────────
+$results.Add((Invoke-HCSection @sqlSplat `
+    -Database     'master' `
+    -SqlFile      (Join-Path $sqlDir '22_06_service_broker_health.sql') `
+    -OutputPath   $OutputPath `
+    -SectionId    '22_06' `
+    -SectionName  'service_broker_health' `
+    -Chapter      $chapter `
+    -QueryTimeout 600))
+
+# ── 22.7 Resource Governor configuration and runtime pressure ─────────────────
+$results.Add((Invoke-HCSection @sqlSplat `
+    -Database    'master' `
+    -SqlFile     (Join-Path $sqlDir '22_07_resource_governor.sql') `
+    -OutputPath  $OutputPath `
+    -SectionId   '22_07' `
+    -SectionName 'resource_governor' `
     -Chapter     $chapter))
 
 return $results

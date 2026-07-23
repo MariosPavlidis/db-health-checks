@@ -386,12 +386,12 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 
 | Section | Output CSV | Source | Description |
 |---|---|---|---|
-| 20.1 | `20_01_cluster_inventory.csv` | WSFC | Cluster name, quorum type, node count, quorum resource |
-| 20.2 | `20_02_cluster_nodes.csv` | WSFC | Node state, vote count, dynamic quorum weight |
-| 20.3 | `20_03_cluster_networks.csv` | WSFC | Cluster network adapter state and role |
-| 20.4 | `20_04_cluster_resources.csv` | WSFC | Resource state per role — online, offline, failed |
-| 20.5 | `20_05_quorum_witness.csv` | WSFC | Quorum witness type, share path or disk resource |
-| 20.6 | `20_06_cluster_events.csv` | WinEvent | Cluster event log warnings/errors from the last 7 days |
+| 20.1 | `20_01_cluster_overview.csv` | WSFC | Cluster summary, all nodes (state, NodeWeight), groups and resources with online/offline flags |
+| 20.2 | `20_02_cluster_quorum.csv` | WSFC | Quorum type, quorum resource, per-node vote and dynamic weight |
+| 20.3 | `20_03_node_ownership.csv` | WSFC | Possible owner nodes for each SQL Server cluster resource |
+| 20.4 | `20_04_cluster_networks.csv` | WSFC | Cluster network adapters — state, role, address, flags for down or unroled networks |
+| 20.5 | `20_05_cluster_thresholds.csv` | WSFC | Heartbeat timing parameters: SameSubnetDelay/Threshold, CrossSubnetDelay/Threshold, QuorumArbitrationTimeMax |
+| 20.6 | `20_06_cluster_events.csv` | WinEvent | FailoverClustering/Operational event log — Critical/Error/Warning entries from the last 90 days |
 
 ### Chapter 21 — Network
 

@@ -307,7 +307,10 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 
 | Check | Script | Description |
 |---|---|---|
-| 18_01–06 | PowerShell (Windows) | OS version/patch level, power plan, .NET version, system event log errors, antivirus exclusions, scheduled tasks |
+| 18_01 | PowerShell (Windows) | System event log — Critical/Error from the last 7 days |
+| 18_02 | PowerShell (Windows) | Application event log — MSSQLSERVER errors from the last 7 days |
+| 18_03 | PowerShell (Windows) | OS and SQL Server service uptime, last boot time |
+| 18_04 | PowerShell (Windows) | Antivirus product detection and exclusion path check |
 
 ### 19 — Availability Groups
 
@@ -337,7 +340,12 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 
 | Check | Script | Description |
 |---|---|---|
-| 20_01–04 | PowerShell (Windows) | Cluster node status, network configuration, quorum settings, cluster event log |
+| 20_01 | PowerShell (Windows) | Cluster overview — node states, group/resource online status |
+| 20_02 | PowerShell (Windows) | Quorum type, quorum resource, per-node vote and dynamic weight |
+| 20_03 | PowerShell (Windows) | Possible owner nodes for each SQL Server cluster resource |
+| 20_04 | PowerShell (Windows) | Cluster networks — state, role, address |
+| 20_05 | PowerShell (Windows) | Heartbeat thresholds — SameSubnet/CrossSubnet delay and threshold, QuorumArbitrationTimeMax |
+| 20_06 | PowerShell (Windows) | FailoverClustering/Operational event log — Critical/Error/Warning from the last 90 days |
 
 ### 21 — Network
 

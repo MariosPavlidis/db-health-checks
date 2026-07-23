@@ -22,13 +22,13 @@ SELECT
               AND cp.objtype = 'Adhoc' THEN 1 ELSE 0 END)         AS SingleUseAdhocPlans,
     SUM(CASE WHEN cp.usecounts > 1 THEN 1 ELSE 0 END)             AS MultiUsePlans,
     SUM(CASE WHEN cp.objtype = 'Adhoc' THEN 1 ELSE 0 END)         AS TotalAdhocPlans,
-    CAST(SUM(cp.size_in_bytes) / 1048576.0 AS DECIMAL(18,2))      AS TotalCacheSizeMB,
+    CAST(SUM(CAST(cp.size_in_bytes AS BIGINT)) / 1048576.0 AS DECIMAL(18,2))      AS TotalCacheSizeMB,
     CAST(SUM(CASE WHEN cp.usecounts = 1
                    AND cp.objtype = 'Adhoc'
-                   THEN cp.size_in_bytes ELSE 0 END) / 1048576.0
+                   THEN CAST(cp.size_in_bytes AS BIGINT) ELSE 0 END) / 1048576.0
          AS DECIMAL(18,2))                                          AS SingleUseAdhocCacheSizeMB,
     CAST(SUM(CASE WHEN cp.objtype = 'Adhoc'
-                   THEN cp.size_in_bytes ELSE 0 END) / 1048576.0
+                   THEN CAST(cp.size_in_bytes AS BIGINT) ELSE 0 END) / 1048576.0
          AS DECIMAL(18,2))                                          AS TotalAdhocCacheSizeMB,
     -- 'optimize for ad hoc workloads' setting
     (SELECT CAST(value_in_use AS BIT)
@@ -41,9 +41,9 @@ FROM sys.dm_exec_cached_plans AS cp;
 SELECT
     cp.objtype                                                      AS PlanType,
     COUNT(*)                                                        AS PlanCount,
-    SUM(cp.usecounts)                                               AS TotalUseCounts,
-    CAST(SUM(cp.size_in_bytes) / 1048576.0 AS DECIMAL(18,2))      AS CacheSizeMB,
-    CAST(AVG(cp.size_in_bytes) / 1024.0 AS DECIMAL(18,2))         AS AvgPlanSizeKB,
+    SUM(CAST(cp.usecounts AS BIGINT))                               AS TotalUseCounts,
+    CAST(SUM(CAST(cp.size_in_bytes AS BIGINT)) / 1048576.0 AS DECIMAL(18,2))      AS CacheSizeMB,
+    CAST(AVG(CAST(cp.size_in_bytes AS BIGINT)) / 1024.0 AS DECIMAL(18,2))         AS AvgPlanSizeKB,
     GETDATE()                                                       AS CollectedAt
 FROM sys.dm_exec_cached_plans AS cp
 GROUP BY cp.objtype

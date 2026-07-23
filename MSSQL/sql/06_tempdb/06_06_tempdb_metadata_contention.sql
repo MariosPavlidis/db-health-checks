@@ -5,7 +5,8 @@
 -- Result sets:
 --   1. Instance-level PAGELATCH wait totals
 --   2. Current tempdb PAGELATCH waits classified as PFS/GAM/SGAM/metadata/other
---   3. Memory-optimized tempdb metadata state (SQL Server 2019+)
+--   3. Current tempdb system-table metadata contention (SQL Server 2019+)
+--   4. Memory-optimized tempdb metadata state (SQL Server 2019+)
 -- =============================================================================
 SET NOCOUNT ON;
 
@@ -73,8 +74,6 @@ SELECT
             THEN 'GAM'
         WHEN pw.PageId = 3 OR (pw.PageId > 3 AND (pw.PageId - 3) % 511232 = 0)
             THEN 'SGAM'
-        WHEN pw.PageId IN (5, 7)
-            THEN 'SYSTEM_METADATA'
         ELSE 'DATA_OR_OTHER'
     END                                                 AS ContentionClass,
     ib.event_info                                       AS LastSubmittedCommand,
@@ -84,14 +83,53 @@ SELECT
           OR pw.PageId = 3 OR (pw.PageId > 3 AND (pw.PageId - 3) % 511232 = 0)
             THEN 1 ELSE 0
     END                                                 AS flag_allocation_page_contention,
-    CASE WHEN pw.PageId IN (5, 7) THEN 1 ELSE 0 END     AS flag_possible_metadata_contention
+    CAST(0 AS BIT)                                      AS flag_metadata_contention_requires_page_info
 FROM ParsedWaits AS pw
 LEFT JOIN sys.dm_exec_sessions AS es
     ON es.session_id = pw.session_id
 OUTER APPLY sys.dm_exec_input_buffer(pw.session_id, NULL) AS ib
 ORDER BY pw.wait_duration_ms DESC;
 
--- ── 3. Memory-optimized tempdb metadata state ────────────────────────────────
+-- ── 3. SQL Server 2019+ tempdb system-table metadata contention ──────────────
+-- This follows Microsoft's documented diagnostic pattern. References to
+-- SQL Server 2019 functions/columns are isolated in dynamic SQL so the script
+-- continues to parse and run on SQL Server 2016/2017.
+IF TRY_CAST(SERVERPROPERTY('ProductMajorVersion') AS INT) >= 15
+BEGIN
+    DECLARE @MetadataSql NVARCHAR(MAX) = N'
+SELECT
+    ''TEMPDB_SYSTEM_TABLE_CONTENTION''                   AS ResultSetName,
+    dpi.object_id                                       AS ObjectId,
+    OBJECT_NAME(dpi.object_id, dpi.database_id)          AS SystemTableName,
+    COUNT(DISTINCT r.session_id)                         AS WaitingSessionCount,
+    MAX(r.wait_time)                                     AS MaxWaitTimeMs,
+    MAX(r.wait_type)                                     AS WaitType,
+    CAST(1 AS BIT)                                       AS flag_metadata_contention
+FROM sys.dm_exec_requests AS r
+CROSS APPLY sys.fn_PageResCracker(r.page_resource) AS prc
+CROSS APPLY sys.dm_db_page_info
+(
+    prc.db_id,
+    prc.file_id,
+    prc.page_id,
+    ''LIMITED''
+) AS dpi
+WHERE dpi.database_id = 2
+  AND dpi.object_id IN (3, 9, 34, 40, 41, 54, 55, 60, 74, 75)
+  AND UPPER(r.wait_type) LIKE N''PAGELATCH[_]%''
+GROUP BY dpi.database_id, dpi.object_id
+ORDER BY WaitingSessionCount DESC, MaxWaitTimeMs DESC;';
+
+    EXEC sys.sp_executesql @MetadataSql;
+END
+ELSE
+BEGIN
+    SELECT
+        'TEMPDB_SYSTEM_TABLE_CONTENTION' AS ResultSetName,
+        'Object-level metadata contention classification requires SQL Server 2019 or later.' AS Note;
+END;
+
+-- ── 4. Memory-optimized tempdb metadata state ────────────────────────────────
 IF TRY_CAST(SERVERPROPERTY('ProductMajorVersion') AS INT) >= 15
 BEGIN
     SELECT

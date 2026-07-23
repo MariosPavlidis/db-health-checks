@@ -139,14 +139,13 @@ foreach ($script in $chapterScripts) {
     $jobTimeout       = $ChapterTimeoutSec
 
     $job = Start-Job -ScriptBlock {
-        param($scriptPath, $sqlInst, $outPath, $skipWin, $sqlRoot, $credFile, $querySec)
+        param($scriptPath, $sqlInst, $outPath, $skipWin, $sqlRoot, $credFile)
 
         $params = @{
             SqlInstance       = $sqlInst
             OutputPath        = $outPath
             SkipWindowsChecks = $skipWin
             SqlScriptRoot     = $sqlRoot
-            QueryTimeout      = $querySec
         }
         if ($credFile -and (Test-Path $credFile)) {
             $params['SqlCredential'] = Import-Clixml -Path $credFile
@@ -154,7 +153,7 @@ foreach ($script in $chapterScripts) {
         & $scriptPath @params
 
     } -ArgumentList $scriptFullPath, $SqlInstance, $jobRunFolder, $jobSkipWin,
-                    $jobSqlScriptRoot, $credTempFile, $ChapterTimeoutSec
+                    $jobSqlScriptRoot, $credTempFile
 
     $completed = Wait-Job $job -Timeout $ChapterTimeoutSec
 

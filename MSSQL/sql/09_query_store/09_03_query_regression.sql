@@ -5,6 +5,8 @@
 --              multiple plans (plan regression candidates), forced plans,
 --              plan forcing failures, and recent duration regressions.
 --              Uses cursor and dynamic SQL per database.
+--              Time window: last 30 days of runtime stats.
+--              Row caps applied to prevent long runtimes on busy instances.
 -- Requires:    SQL Server 2016 or later (version guard below)
 -- =============================================================================
 
@@ -16,50 +18,50 @@ END
 GO
 
 -- ── Temp tables for each result category ─────────────────────────────────────
-IF OBJECT_ID('tempdb..#QsMultiPlan')      IS NOT NULL DROP TABLE #QsMultiPlan;
-IF OBJECT_ID('tempdb..#QsForcedPlans')    IS NOT NULL DROP TABLE #QsForcedPlans;
-IF OBJECT_ID('tempdb..#QsForceFailed')    IS NOT NULL DROP TABLE #QsForceFailed;
-IF OBJECT_ID('tempdb..#QsRegressions')    IS NOT NULL DROP TABLE #QsRegressions;
+IF OBJECT_ID('tempdb..#QsMultiPlan')   IS NOT NULL DROP TABLE #QsMultiPlan;
+IF OBJECT_ID('tempdb..#QsForcedPlans') IS NOT NULL DROP TABLE #QsForcedPlans;
+IF OBJECT_ID('tempdb..#QsForceFailed') IS NOT NULL DROP TABLE #QsForceFailed;
+IF OBJECT_ID('tempdb..#QsRegressions') IS NOT NULL DROP TABLE #QsRegressions;
 
 CREATE TABLE #QsMultiPlan (
-    DatabaseName        NVARCHAR(128),
-    QueryId             BIGINT,
-    PlanCount           INT,
-    BestAvgDurationMs   FLOAT,
-    WorstAvgDurationMs  FLOAT,
+    DatabaseName          NVARCHAR(128),
+    QueryId               BIGINT,
+    PlanCount             INT,
+    BestAvgDurationMs     FLOAT,
+    WorstAvgDurationMs    FLOAT,
     DurationVarianceRatio FLOAT,
-    CollectedAt         DATETIME
+    CollectedAt           DATETIME
 );
 
 CREATE TABLE #QsForcedPlans (
-    DatabaseName        NVARCHAR(128),
-    QueryId             BIGINT,
-    PlanId              BIGINT,
-    QueryPlanHash       BINARY(8),
-    IsForcedPlan        BIT,
-    ForceFailureCount   INT,
+    DatabaseName           NVARCHAR(128),
+    QueryId                BIGINT,
+    PlanId                 BIGINT,
+    QueryPlanHash          BINARY(8),
+    IsForcedPlan           BIT,
+    ForceFailureCount      INT,
     LastForceFailureReason NVARCHAR(4000),
-    ForcedPlanModified  DATETIME,
-    CollectedAt         DATETIME
+    ForcedPlanModified     DATETIME,
+    CollectedAt            DATETIME
 );
 
 CREATE TABLE #QsForceFailed (
-    DatabaseName            NVARCHAR(128),
-    QueryId                 BIGINT,
-    PlanId                  BIGINT,
-    ForceFailureCount       INT,
-    LastForceFailureReason  NVARCHAR(4000),
-    CollectedAt             DATETIME
+    DatabaseName           NVARCHAR(128),
+    QueryId                BIGINT,
+    PlanId                 BIGINT,
+    ForceFailureCount      INT,
+    LastForceFailureReason NVARCHAR(4000),
+    CollectedAt            DATETIME
 );
 
 CREATE TABLE #QsRegressions (
-    DatabaseName            NVARCHAR(128),
-    QueryId                 BIGINT,
-    PlanId                  BIGINT,
-    RecentAvgDurationMs     FLOAT,
-    PreviousAvgDurationMs   FLOAT,
-    RegressionRatio         FLOAT,
-    CollectedAt             DATETIME
+    DatabaseName          NVARCHAR(128),
+    QueryId               BIGINT,
+    PlanId                BIGINT,
+    RecentAvgDurationMs   FLOAT,
+    PreviousAvgDurationMs FLOAT,
+    RegressionRatio       FLOAT,
+    CollectedAt           DATETIME
 );
 
 DECLARE @dbName NVARCHAR(128);
@@ -79,22 +81,24 @@ FETCH NEXT FROM db_cursor INTO @dbName;
 WHILE @@FETCH_STATUS = 0
 BEGIN
 
-    -- 1. Queries with multiple plans
+    -- 1. Queries with multiple plans — limited to last 30 days, top 100 by variance
     SET @sql = N'
 USE ' + QUOTENAME(@dbName) + N';
 INSERT INTO #QsMultiPlan
     (DatabaseName, QueryId, PlanCount, BestAvgDurationMs, WorstAvgDurationMs,
      DurationVarianceRatio, CollectedAt)
-SELECT
+SELECT TOP 100
     DB_NAME()                                                               AS DatabaseName,
     qsp.query_id,
     COUNT(DISTINCT qsp.plan_id)                                             AS PlanCount,
     MIN(rs.avg_duration) / 1000.0                                           AS BestAvgDurationMs,
     MAX(rs.avg_duration) / 1000.0                                           AS WorstAvgDurationMs,
-    MAX(rs.avg_duration) / NULLIF(MIN(rs.avg_duration), 0)                  AS DurationVarianceRatio,
+    MAX(rs.avg_duration) / NULLIF(MIN(rs.avg_duration), 0)                 AS DurationVarianceRatio,
     GETDATE()                                                               AS CollectedAt
 FROM sys.query_store_plan          AS qsp
-JOIN sys.query_store_runtime_stats AS rs ON rs.plan_id = qsp.plan_id
+JOIN sys.query_store_runtime_stats AS rs
+    ON  rs.plan_id = qsp.plan_id
+   AND  rs.last_execution_time >= DATEADD(day, -30, GETDATE())
 GROUP BY qsp.query_id
 HAVING COUNT(DISTINCT qsp.plan_id) > 1
 ORDER BY DurationVarianceRatio DESC;
@@ -149,7 +153,7 @@ SELECT
     qsp.last_force_failure_reason_desc  AS LastForceFailureReason,
     GETDATE()                           AS CollectedAt
 FROM sys.query_store_plan AS qsp
-WHERE qsp.is_forced_plan    = 1
+WHERE qsp.is_forced_plan     = 1
   AND qsp.force_failure_count > 0
 ORDER BY qsp.force_failure_count DESC;
 ';
@@ -161,20 +165,22 @@ ORDER BY qsp.force_failure_count DESC;
         VALUES (@dbName + ' ERROR: ' + ERROR_MESSAGE(), GETDATE());
     END CATCH
 
-    -- 4. Recent regressions: last interval avg_duration > previous * 2
+    -- 4. Recent regressions — last 30 days only, top 50 by ratio
+    --    Compares the most recent runtime stats interval against the previous
+    --    one for each query. Flags where recent avg_duration > previous * 2.
     SET @sql = N'
 USE ' + QUOTENAME(@dbName) + N';
 INSERT INTO #QsRegressions
     (DatabaseName, QueryId, PlanId, RecentAvgDurationMs,
      PreviousAvgDurationMs, RegressionRatio, CollectedAt)
-SELECT
-    DB_NAME()                                   AS DatabaseName,
+SELECT TOP 50
+    DB_NAME()                                           AS DatabaseName,
     recent.query_id,
     recent.plan_id,
-    recent.avg_duration / 1000.0                AS RecentAvgDurationMs,
-    prev.avg_duration   / 1000.0                AS PreviousAvgDurationMs,
-    recent.avg_duration / NULLIF(prev.avg_duration, 0) AS RegressionRatio,
-    GETDATE()                                   AS CollectedAt
+    recent.avg_duration / 1000.0                        AS RecentAvgDurationMs,
+    prev.avg_duration   / 1000.0                        AS PreviousAvgDurationMs,
+    recent.avg_duration / NULLIF(prev.avg_duration, 0)  AS RegressionRatio,
+    GETDATE()                                           AS CollectedAt
 FROM (
     SELECT
         qsp.query_id,
@@ -183,6 +189,7 @@ FROM (
         ROW_NUMBER() OVER (PARTITION BY qsp.query_id ORDER BY rs.last_execution_time DESC) AS rn
     FROM sys.query_store_runtime_stats AS rs
     JOIN sys.query_store_plan          AS qsp ON qsp.plan_id = rs.plan_id
+    WHERE rs.last_execution_time >= DATEADD(day, -30, GETDATE())
 ) AS recent
 JOIN (
     SELECT
@@ -192,10 +199,11 @@ JOIN (
         ROW_NUMBER() OVER (PARTITION BY qsp.query_id ORDER BY rs.last_execution_time DESC) AS rn
     FROM sys.query_store_runtime_stats AS rs
     JOIN sys.query_store_plan          AS qsp ON qsp.plan_id = rs.plan_id
+    WHERE rs.last_execution_time >= DATEADD(day, -30, GETDATE())
 ) AS prev
     ON  prev.query_id = recent.query_id
     AND prev.rn       = 2
-WHERE recent.rn = 1
+WHERE recent.rn          = 1
   AND recent.avg_duration > prev.avg_duration * 2
   AND prev.avg_duration   > 0
 ORDER BY RegressionRatio DESC;

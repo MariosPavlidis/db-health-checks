@@ -226,6 +226,10 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 | 6.1 | `06_01_tempdb_config.csv` | SQL | TempDB file count, sizes, autogrowth, equal-size check |
 | 6.2 | `06_02_tempdb_capacity.csv` | SQL | Current space usage — version store, user objects, internal |
 | 6.3 | `06_03_tempdb_performance.csv` | SQL | Allocation contention — PFS/GAM/SGAM waits, latch stats |
+| 6.4 | `06_04_version_store_consumers.csv` | SQL | Top version store consumers by session and object |
+| 6.5 | `06_05_tempdb_spills.csv` | SQL | Sort and hash spills to TempDB from DMVs and Query Store |
+| 6.6 | `06_06_tempdb_metadata_contention.csv` | SQL | TempDB metadata contention — PAGELATCH waits on system objects |
+| 6.7 | `06_07_adr_persistent_version_store.csv` | SQL | Accelerated Database Recovery persistent version store size and age |
 
 ### Chapter 07 — Transaction Log
 
@@ -314,6 +318,10 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 | 15.4 | `15_04_security_db_settings.csv` | SQL | Trustworthy bit, guest user, cross-db chaining per database |
 | 15.5 | `15_05_sa_privileged.csv` | SQL | SA account status, accounts with CONTROL SERVER, xp_cmdshell state |
 | 15.6 | `15_06_linked_servers.csv` | SQL | Linked server inventory — provider, security context, RPC settings |
+| 15.7 | `15_07_login_password_policy.csv` | SQL | SQL login password policy, expiration, legacy SHA-1 hash, dormant accounts |
+| 15.8 | `15_08_trustworthy_clr_assemblies.csv` | SQL | TRUSTWORTHY sysadmin-owned databases, CLR strict security, UNSAFE/EXTERNAL assemblies |
+| 15.9 | `15_09_rls_ddm.csv` | SQL | Row-level security policies and dynamic data masking columns per database |
+| 15.10 | `15_10_audit_coverage.csv` | SQL | Server and database audit specifications — enabled audits and action coverage |
 
 ### Chapter 16 — Encryption and TLS
 
@@ -324,6 +332,10 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 | 16.2 | `16_02_tde.csv` | SQL | TDE encryption state per database, certificate name and expiry |
 | 16.3 | `16_03_ag_endpoint_security.csv` | SQL | Mirroring endpoint auth type, encryption algorithm, CONNECT grants |
 | 16.4 | `16_04_cert_expiry_summary.csv` | SQL | All SQL internal certificates with expiry classification |
+| 16.5 | `16_05_endpoint_inventory.csv` | SQL | All endpoint types (T-SQL, Service Broker, mirroring, HADR) — state and CONNECT permissions |
+| 16.6 | `16_06_crypto_hierarchy.csv` | SQL | Service master key, database master keys, certificates, asymmetric keys with expiry flags |
+| 16.7 | `16_07_always_encrypted.csv` | SQL | Always Encrypted CMK/CEK metadata and encrypted column inventory |
+| 16.8 | `16_08_tde_key_availability.csv` | SQL | TDE scan progress for in-flight operations; certificate availability across AG replicas |
 
 ### Chapter 17 — SQL Server Agent
 
@@ -335,6 +347,7 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 | 17.4 | `17_04_operators.csv` | SQL | Operator inventory and notification configuration |
 | 17.5 | `17_05_alerts.csv` | SQL | Alert definitions — severity, error number, notification targets |
 | 17.6 | `17_06_database_mail.csv` | SQL | Database Mail profile and account configuration |
+| 17.7 | `17_07_credentials_proxies.csv` | SQL | Credentials inventory, proxy-to-subsystem mappings, high-risk subsystem flags |
 
 ### Chapter 18 — Windows Host
 
@@ -351,14 +364,21 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 
 | Section | Output CSV | Source | Description |
 |---|---|---|---|
-| 19.1 | `19_01_ag_inventory.csv` | SQL | AG name, quorum mode, failover mode, health state |
-| 19.2 | `19_02_replica_status.csv` | SQL | Replica role, sync state, connected state, failover readiness |
-| 19.3 | `19_03_database_sync.csv` | SQL | Per-database sync health, redo/send queue sizes |
-| 19.4 | `19_04_listener_config.csv` | SQL | Listener IP, port, network mode |
-| 19.5 | `19_05_redo_latency.csv` | SQL | Redo thread latency and estimated recovery time per replica |
-| 19.6 | `19_06_log_send_queue.csv` | SQL | Log send queue depth trend per database |
-| 19.7 | `19_07_seeding_state.csv` | SQL | Automatic seeding status and progress |
-| 19.8 | `19_08_ag_health_events.csv` | SQL | AG state change events from system health XE session |
+| 19.1 | `19_01_ag_inventory.csv` | SQL | AG name, replica state, failover/sync mode; flags sync-commit replicas not healthy |
+| 19.2 | `19_02_db_sync_state.csv` | SQL | Per-database synchronization state, suspend reason |
+| 19.3 | `19_03_send_redo_queues.csv` | SQL | Send and redo queue sizes with estimated catch-up times |
+| 19.4 | `19_04_ag_listener.csv` | SQL | Listener DNS name, IP, port, subnet, DHCP, cluster network config |
+| 19.5 | `19_05_ag_backup_config.csv` | SQL | Backup preference per AG and per-replica backup priority |
+| 19.6 | `19_06_ag_errors.csv` | SQL | Error log scan for AG lease, seeding, endpoint, and connectivity events |
+| 19.7 | `19_07_auto_page_repair.csv` | SQL | Auto page repair attempts across AG replicas |
+| 19.8 | `19_08_readonly_routing.csv` | SQL | Read-only routing URLs and routing list configuration |
+| 19.9 | `19_09_ag_lease_health.csv` | SQL | Lease and session-timeout health — disconnected or recently errored replicas |
+| 19.10 | `19_10_data_loss_failover_readiness.csv` | SQL | Async replica data-loss exposure (redo queue KB); sync replica failover readiness |
+| 19.11 | `19_11_log_truncation_holdup.csv` | SQL | Databases where log truncation is blocked by a lagging AG replica |
+| 19.12 | `19_12_seeding_health.csv` | SQL | Automatic seeding mode, active seeding progress, seeding failure history |
+| 19.13 | `19_13_distributed_ag.csv` | SQL | Distributed Availability Group inventory and member AG health |
+| 19.14 | `19_14_contained_ag.csv` | SQL | Contained AG configuration (SQL Server 2022+) |
+| 19.15 | `19_15_patch_consistency.csv` | SQL | Local build version and replica server list for patch consistency verification |
 
 ### Chapter 20 — Windows Server Failover Clustering
 

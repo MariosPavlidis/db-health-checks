@@ -184,6 +184,10 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 | 06_01 | `sql/06_tempdb/06_01_tempdb_config.sql` | File count, equal sizing, placement, trace flag 1117/1118 |
 | 06_02 | `sql/06_tempdb/06_02_tempdb_capacity.sql` | Current space used vs allocated, version store size |
 | 06_03 | `sql/06_tempdb/06_03_tempdb_performance.sql` | Allocation contention waits, top consumers |
+| 06_04 | `sql/06_tempdb/06_04_version_store_consumers.sql` | Top version store consumers by session and object |
+| 06_05 | `sql/06_tempdb/06_05_tempdb_spills.sql` | Sort and hash spills to TempDB from DMVs and Query Store |
+| 06_06 | `sql/06_tempdb/06_06_tempdb_metadata_contention.sql` | TempDB metadata contention — PAGELATCH waits on system objects |
+| 06_07 | `sql/06_tempdb/06_07_adr_persistent_version_store.sql` | Accelerated Database Recovery persistent version store size and age |
 
 ### 07 — Transaction Log
 
@@ -269,6 +273,10 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 | 15_04 | `sql/15_security_access/15_04_security_db_settings.sql` | Trustworthy databases, cross-db ownership chaining, guest access |
 | 15_05 | `sql/15_security_access/15_05_sa_privileged.sql` | SA account status, renamed SA, accounts with sysadmin |
 | 15_06 | `sql/15_security_access/15_06_linked_servers.sql` | Linked server inventory, credentials, RPC/data access settings |
+| 15_07 | `sql/15_security_access/15_07_login_password_policy.sql` | SQL login password policy, expiration, legacy SHA-1 hash, dormant accounts |
+| 15_08 | `sql/15_security_access/15_08_trustworthy_clr_assemblies.sql` | TRUSTWORTHY sysadmin-owned databases, CLR strict security, UNSAFE/EXTERNAL assemblies |
+| 15_09 | `sql/15_security_access/15_09_rls_ddm.sql` | Row-level security policies and dynamic data masking columns per database |
+| 15_10 | `sql/15_security_access/15_10_audit_coverage.sql` | Server and database audit specifications — enabled audits and action coverage |
 
 ### 16 — Encryption and TLS
 
@@ -278,6 +286,10 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 | 16_02 | `sql/16_encryption_tls/16_02_tde.sql` | TDE encryption state per database, key algorithm, thumbprint |
 | 16_03 | `sql/16_encryption_tls/16_03_ag_endpoint_security.sql` | AG endpoint encryption algorithm and authentication type |
 | 16_04 | `sql/16_encryption_tls/16_04_cert_expiry_summary.sql` | Server certificates and expiry dates |
+| 16_05 | `sql/16_encryption_tls/16_05_endpoint_inventory.sql` | All endpoint types (T-SQL, Service Broker, mirroring, HADR) — state and CONNECT permissions |
+| 16_06 | `sql/16_encryption_tls/16_06_crypto_hierarchy.sql` | Service master key, database master keys, certificates, asymmetric keys with expiry flags |
+| 16_07 | `sql/16_encryption_tls/16_07_always_encrypted.sql` | Always Encrypted column master keys, column encryption keys, and encrypted column inventory |
+| 16_08 | `sql/16_encryption_tls/16_08_tde_key_availability.sql` | TDE scan progress for in-flight operations; certificate availability across AG replicas |
 
 ### 17 — SQL Agent, Automation, and Alerting
 
@@ -289,6 +301,7 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 | 17_04 | `sql/17_sql_agent/17_04_operators.sql` | Configured operators and email notification readiness |
 | 17_05 | `sql/17_sql_agent/17_05_alerts.sql` | SQL Agent alerts — severity coverage, 823/824/825 alerts |
 | 17_06 | `sql/17_sql_agent/17_06_database_mail.sql` | Database Mail profiles, accounts, and send log |
+| 17_07 | `sql/17_sql_agent/17_07_credentials_proxies.sql` | Credentials inventory, proxy-to-subsystem mappings, high-risk subsystem flags |
 
 ### 18 — Windows Host
 
@@ -302,7 +315,7 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 
 | Check | Script | Description |
 |---|---|---|
-| 19_01 | `sql/19_availability_groups/19_01_ag_inventory.sql` | AG name, primary replica, failover mode, quorum config |
+| 19_01 | `sql/19_availability_groups/19_01_ag_inventory.sql` | AG name, replica state, failover/sync mode; flags sync-commit replicas not healthy |
 | 19_02 | `sql/19_availability_groups/19_02_db_sync_state.sql` | Per-database synchronization state and health per replica |
 | 19_03 | `sql/19_availability_groups/19_03_send_redo_queues.sql` | Send queue and redo queue size — latency indicators |
 | 19_04 | `sql/19_availability_groups/19_04_ag_listener.sql` | AG listeners, IP addresses, port, DNS registration |
@@ -310,6 +323,13 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 | 19_06 | `sql/19_availability_groups/19_06_ag_errors.sql` | AG-related error events from system health XE |
 | 19_07 | `sql/19_availability_groups/19_07_auto_page_repair.sql` | Auto page repair attempts across AG replicas |
 | 19_08 | `sql/19_availability_groups/19_08_readonly_routing.sql` | Read-only routing configuration and missing routing URLs |
+| 19_09 | `sql/19_availability_groups/19_09_ag_lease_health.sql` | Lease and session-timeout health — disconnected or recently errored replicas |
+| 19_10 | `sql/19_availability_groups/19_10_data_loss_failover_readiness.sql` | Async replica data-loss exposure (redo queue KB); sync replica failover readiness |
+| 19_11 | `sql/19_availability_groups/19_11_log_truncation_holdup.sql` | Databases where log truncation is blocked by a lagging AG replica |
+| 19_12 | `sql/19_availability_groups/19_12_seeding_health.sql` | Automatic seeding mode, active seeding progress, seeding failure history |
+| 19_13 | `sql/19_availability_groups/19_13_distributed_ag.sql` | Distributed Availability Group inventory and member AG health |
+| 19_14 | `sql/19_availability_groups/19_14_contained_ag.sql` | Contained AG configuration (SQL Server 2022+) |
+| 19_15 | `sql/19_availability_groups/19_15_patch_consistency.sql` | Local build version and replica server list for patch consistency verification |
 
 ### 20 — Windows Server Failover Clustering
 

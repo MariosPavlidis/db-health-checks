@@ -273,7 +273,7 @@ function Write-HCLog {
     $ts      = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
     $line    = "[$ts] [$Status] [$Chapter] [$Section] $Message"
 
-    Add-Content -Path $logFile -Value $line -Encoding UTF8
+    Add-Content -Path $logFile -Value $line -Encoding Unicode
 
     # Also write to console with colour
     $colour = switch ($Status) {

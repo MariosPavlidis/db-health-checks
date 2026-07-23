@@ -1,10 +1,11 @@
 -- ============================================================
--- Health Check: Ch 19 Availability Groups — 19.1 AG Inventory and Replica State
--- Checklist ref: Section 19.1
+-- Health Check: Ch 19 Availability Groups — 19.13 Distributed Availability Group Inventory
+-- Checklist ref: Section 19.13
 -- Min SQL version: 2016 (130)
 -- ============================================================
--- Returns per-replica configuration and current health state for all AGs.
--- Flags disconnected or unhealthy replicas for immediate attention.
+-- Lists Distributed Availability Groups (is_distributed = 1) and the member
+-- AGs (replicas) with their current connectivity and synchronization health.
+-- Returns no rows if no Distributed AGs are configured.
 -- ============================================================
 IF CAST(SERVERPROPERTY('ProductMajorVersion') AS INT) < 13
 BEGIN
@@ -18,20 +19,17 @@ BEGIN
 END
 GO
 
+-- ── Distributed AG inventory and member AG health ────────────────────────────
 SELECT
-    ag.name                                         AS AGName,
-    ag.group_id                                     AS AGGroupId,
+    ag.name                                         AS DAGName,
+    ag.group_id                                     AS DAGGroupId,
     ag.cluster_type_desc                            AS ClusterType,
-    ag.automated_backup_preference_desc             AS AutomatedBackupPreference,
     ag.failure_condition_level                      AS FailureConditionLevel,
-    ag.health_check_timeout                         AS HealthCheckTimeoutMs,
-    ar.replica_server_name                          AS ReplicaServer,
+    ag.automated_backup_preference_desc             AS BackupPreference,
+    ar.replica_server_name                          AS MemberAGEndpointName,
     ar.endpoint_url                                 AS EndpointUrl,
     ar.availability_mode_desc                       AS AvailabilityMode,
     ar.failover_mode_desc                           AS FailoverMode,
-    ar.seeding_mode_desc                            AS SeedingMode,
-    ar.backup_priority                              AS BackupPriority,
-    ar.session_timeout                              AS SessionTimeoutSec,
     ars.role_desc                                   AS CurrentRole,
     ars.operational_state_desc                      AS OperationalState,
     ars.connected_state_desc                        AS ConnectedState,
@@ -39,23 +37,15 @@ SELECT
     ars.last_connect_error_number                   AS LastConnectErrorNumber,
     ars.last_connect_error_description              AS LastConnectErrorDesc,
     ars.last_connect_error_timestamp                AS LastConnectErrorTime,
-    CASE WHEN ars.connected_state_desc <> 'CONNECTED'           THEN 'DISCONNECTED_REPLICA'
-         WHEN ars.synchronization_health_desc <> 'HEALTHY'      THEN 'UNHEALTHY_REPLICA'
-         ELSE ''
-    END                                             AS ReplicaFlag,
-    -- Synchronous replicas that are not HEALTHY represent a data-protection gap
     CASE
-        WHEN ar.availability_mode_desc = 'SYNCHRONOUS_COMMIT'
-             AND ars.connected_state_desc <> 'CONNECTED'
-             THEN 'SYNC_COMMIT_DISCONNECTED'
-        WHEN ar.availability_mode_desc = 'SYNCHRONOUS_COMMIT'
-             AND ars.synchronization_health_desc <> 'HEALTHY'
-             THEN 'SYNC_COMMIT_NOT_HEALTHY'
+        WHEN ars.connected_state_desc <> 'CONNECTED'       THEN 'MEMBER_AG_DISCONNECTED'
+        WHEN ars.synchronization_health_desc <> 'HEALTHY'  THEN 'MEMBER_AG_UNHEALTHY'
         ELSE ''
-    END                                             AS CommitModeSyncFlag
+    END                                             AS DAGHealthFlag
 FROM sys.availability_groups ag
 JOIN sys.availability_replicas ar
     ON ar.group_id = ag.group_id
 JOIN sys.dm_hadr_availability_replica_states ars
     ON ars.replica_id = ar.replica_id
+WHERE ag.is_distributed = 1
 ORDER BY ag.name, ar.replica_server_name;

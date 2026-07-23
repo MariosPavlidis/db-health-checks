@@ -83,41 +83,44 @@ WITH IndexCols AS (
     GROUP BY
         i.object_id, i.index_id, i.name, i.type_desc,
         i.is_unique, i.is_primary_key, i.is_unique_constraint, i.filter_definition
+),
+Pairs AS (
+    SELECT
+        DB_NAME()                                                           AS DatabaseName,
+        OBJECT_SCHEMA_NAME(a.object_id) + ''.'' + OBJECT_NAME(a.object_id) AS TableName,
+        a.IndexName                         AS Index1Name,
+        a.KeyCols                           AS Index1KeyCols,
+        a.IncludeCols                       AS Index1IncludeCols,
+        a.is_primary_key                    AS Index1IsPK,
+        a.is_unique                         AS Index1IsUnique,
+        b.IndexName                         AS Index2Name,
+        b.KeyCols                           AS Index2KeyCols,
+        b.IncludeCols                       AS Index2IncludeCols,
+        b.is_primary_key                    AS Index2IsPK,
+        b.is_unique                         AS Index2IsUnique,
+        CASE
+            WHEN a.KeyCols = b.KeyCols
+             AND ISNULL(a.IncludeCols,    '''') = ISNULL(b.IncludeCols,    '''')
+             AND ISNULL(a.FilterPredicate,'''') = ISNULL(b.FilterPredicate,'''')
+                THEN ''EXACT_DUPLICATE''
+            WHEN b.KeyCols LIKE a.KeyCols + '',%''
+                THEN ''INDEX1_IS_PREFIX''
+            WHEN a.KeyCols LIKE b.KeyCols + '',%''
+                THEN ''INDEX2_IS_PREFIX''
+        END                                 AS DuplicateType
+    FROM IndexCols a
+    JOIN IndexCols b
+        ON  b.object_id = a.object_id
+        AND b.index_id  > a.index_id
+        AND (
+                a.KeyCols = b.KeyCols
+             OR b.KeyCols LIKE a.KeyCols + '',%''
+             OR a.KeyCols LIKE b.KeyCols + '',%''
+            )
 )
-SELECT
-    DB_NAME()                                                       AS DatabaseName,
-    OBJECT_SCHEMA_NAME(a.object_id) + '.' + OBJECT_NAME(a.object_id) AS TableName,
-    a.IndexName                         AS Index1Name,
-    a.KeyCols                           AS Index1KeyCols,
-    a.IncludeCols                       AS Index1IncludeCols,
-    a.is_primary_key                    AS Index1IsPK,
-    a.is_unique                         AS Index1IsUnique,
-    b.IndexName                         AS Index2Name,
-    b.KeyCols                           AS Index2KeyCols,
-    b.IncludeCols                       AS Index2IncludeCols,
-    b.is_primary_key                    AS Index2IsPK,
-    b.is_unique                         AS Index2IsUnique,
-    CASE
-        WHEN a.KeyCols = b.KeyCols
-         AND ISNULL(a.IncludeCols,   '''') = ISNULL(b.IncludeCols,   '''')
-         AND ISNULL(a.FilterPredicate,'''') = ISNULL(b.FilterPredicate,'''')
-            THEN ''EXACT_DUPLICATE''
-        WHEN b.KeyCols LIKE a.KeyCols + '',%''
-            THEN ''INDEX1_IS_PREFIX''
-        WHEN a.KeyCols LIKE b.KeyCols + '',%''
-            THEN ''INDEX2_IS_PREFIX''
-        ELSE ''OVERLAPPING''
-    END                                 AS DuplicateType
-FROM IndexCols a
-JOIN IndexCols b
-    ON  b.object_id = a.object_id
-    AND b.index_id  > a.index_id
-    AND (
-            a.KeyCols = b.KeyCols
-         OR b.KeyCols LIKE a.KeyCols + '',%''
-         OR a.KeyCols LIKE b.KeyCols + '',%''
-        )
-ORDER BY OBJECT_NAME(a.object_id), DuplicateType;
+SELECT * FROM Pairs
+WHERE  DuplicateType IS NOT NULL
+ORDER BY TableName, DuplicateType;
 ';
     END
     -- ── SQL 2016 path: FOR XML PATH fallback ──────────────────────────────────
@@ -163,41 +166,44 @@ WITH IndexCols AS (
         ).value(''.'',''NVARCHAR(MAX)''), 1, 1, '''')  AS IncludeCols
     FROM sys.indexes i
     WHERE i.type > 0
+),
+Pairs AS (
+    SELECT
+        DB_NAME()                                                           AS DatabaseName,
+        OBJECT_SCHEMA_NAME(a.object_id) + ''.'' + OBJECT_NAME(a.object_id) AS TableName,
+        a.IndexName                         AS Index1Name,
+        a.KeyCols                           AS Index1KeyCols,
+        a.IncludeCols                       AS Index1IncludeCols,
+        a.is_primary_key                    AS Index1IsPK,
+        a.is_unique                         AS Index1IsUnique,
+        b.IndexName                         AS Index2Name,
+        b.KeyCols                           AS Index2KeyCols,
+        b.IncludeCols                       AS Index2IncludeCols,
+        b.is_primary_key                    AS Index2IsPK,
+        b.is_unique                         AS Index2IsUnique,
+        CASE
+            WHEN a.KeyCols = b.KeyCols
+             AND ISNULL(a.IncludeCols,    '''') = ISNULL(b.IncludeCols,    '''')
+             AND ISNULL(a.FilterPredicate,'''') = ISNULL(b.FilterPredicate,'''')
+                THEN ''EXACT_DUPLICATE''
+            WHEN b.KeyCols LIKE a.KeyCols + '',%''
+                THEN ''INDEX1_IS_PREFIX''
+            WHEN a.KeyCols LIKE b.KeyCols + '',%''
+                THEN ''INDEX2_IS_PREFIX''
+        END                                 AS DuplicateType
+    FROM IndexCols a
+    JOIN IndexCols b
+        ON  b.object_id = a.object_id
+        AND b.index_id  > a.index_id
+        AND (
+                a.KeyCols = b.KeyCols
+             OR b.KeyCols LIKE a.KeyCols + '',%''
+             OR a.KeyCols LIKE b.KeyCols + '',%''
+            )
 )
-SELECT
-    DB_NAME()                                                       AS DatabaseName,
-    OBJECT_SCHEMA_NAME(a.object_id) + '.' + OBJECT_NAME(a.object_id) AS TableName,
-    a.IndexName                         AS Index1Name,
-    a.KeyCols                           AS Index1KeyCols,
-    a.IncludeCols                       AS Index1IncludeCols,
-    a.is_primary_key                    AS Index1IsPK,
-    a.is_unique                         AS Index1IsUnique,
-    b.IndexName                         AS Index2Name,
-    b.KeyCols                           AS Index2KeyCols,
-    b.IncludeCols                       AS Index2IncludeCols,
-    b.is_primary_key                    AS Index2IsPK,
-    b.is_unique                         AS Index2IsUnique,
-    CASE
-        WHEN a.KeyCols = b.KeyCols
-         AND ISNULL(a.IncludeCols,   '''') = ISNULL(b.IncludeCols,   '''')
-         AND ISNULL(a.FilterPredicate,'''') = ISNULL(b.FilterPredicate,'''')
-            THEN ''EXACT_DUPLICATE''
-        WHEN b.KeyCols LIKE a.KeyCols + '',%''
-            THEN ''INDEX1_IS_PREFIX''
-        WHEN a.KeyCols LIKE b.KeyCols + '',%''
-            THEN ''INDEX2_IS_PREFIX''
-        ELSE ''OVERLAPPING''
-    END                                 AS DuplicateType
-FROM IndexCols a
-JOIN IndexCols b
-    ON  b.object_id = a.object_id
-    AND b.index_id  > a.index_id
-    AND (
-            a.KeyCols = b.KeyCols
-         OR b.KeyCols LIKE a.KeyCols + '',%''
-         OR a.KeyCols LIKE b.KeyCols + '',%''
-        )
-ORDER BY OBJECT_NAME(a.object_id), DuplicateType;
+SELECT * FROM Pairs
+WHERE  DuplicateType IS NOT NULL
+ORDER BY TableName, DuplicateType;
 ';
     END
 

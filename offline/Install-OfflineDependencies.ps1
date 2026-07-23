@@ -36,8 +36,10 @@ if (-not $SkipHashValidation) {
     }
 }
 
+$moduleFolderName = if ($PSVersionTable.PSEdition -eq 'Core') { 'PowerShell' } else { 'WindowsPowerShell' }
+
 if ($Scope -eq 'AllUsers') {
-    $moduleBase = Join-Path $env:ProgramFiles 'WindowsPowerShell\Modules\SqlServer'
+    $moduleBase = Join-Path $env:ProgramFiles "$moduleFolderName\Modules\SqlServer"
     $identity = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
     if (-not $identity.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         throw 'AllUsers installation requires an elevated PowerShell session.'
@@ -45,7 +47,7 @@ if ($Scope -eq 'AllUsers') {
 }
 else {
     $documents = [Environment]::GetFolderPath('MyDocuments')
-    $moduleBase = Join-Path $documents 'WindowsPowerShell\Modules\SqlServer'
+    $moduleBase = Join-Path $documents "$moduleFolderName\Modules\SqlServer"
 }
 
 $destination = Join-Path $moduleBase $version

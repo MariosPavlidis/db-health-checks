@@ -133,8 +133,8 @@ foreach ($script in $chapterScripts) {
     }
 
     $scriptFullPath   = $script.FullName
-    $jobSqlScriptRoot = Join-Path $PSScriptRoot '..'
-    $jobRunFolder     = $runFolder
+    $jobSqlScriptRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+    $jobRunFolder     = (Resolve-Path $runFolder).Path   # absolute — job has a different working dir
     $jobSkipWin       = $SkipWindowsChecks.IsPresent
     $jobTimeout       = $ChapterTimeoutSec
 

@@ -11,6 +11,7 @@ Read-only data collection for SQL Server health checks. Runs against a live inst
 | PowerShell | Windows PowerShell 5.1 or PowerShell 7+ |
 | SqlServer module | `Install-Module SqlServer -Scope CurrentUser` |
 | SQL permissions | `VIEW SERVER STATE`, `VIEW DATABASE STATE`, read access to `msdb` |
+| SQL Server 2022+ | `VIEW SERVER PERFORMANCE STATE` for Resource Governor runtime statistics |
 | Windows permissions | Local admin (or WMI/CIM read access) for Windows-native checks |
 | WinRM | Only required when targeting a **remote** machine for Windows checks |
 | RSAT-Clustering | Only required for chapter 20 (WSFC) |
@@ -305,6 +306,10 @@ All SQL files live under `../sql/{chapter}/` relative to the powershell folder.
 | 22.1 | `22_01_maintenance_coverage.csv` | SQL | Databases without a detected maintenance plan or Agent job |
 | 22.2 | `22_02_maintenance_effectiveness.csv` | SQL | Index maintenance job history — success rate, last run |
 | 22.3 | `22_03_config_ownership.csv` | SQL | Non-default `sp_configure` values, trace flags, change history |
+| 22.4 | `22_04_cdc_inventory.csv` | SQL | CDC-enabled databases, capture instances, and capture/cleanup Agent job health |
+| 22.5 | `22_05_replication_inventory.csv` | SQL | Publisher/distributor roles, Replication Agent jobs, and replication log holdup |
+| 22.6 | `22_06_service_broker_health.csv` | SQL | Broker state, user queues, activation, and transmission backlog/errors |
+| 22.7 | `22_07_resource_governor.csv` | SQL | Stored/effective Resource Governor configuration and runtime throttling evidence |
 
 ---
 

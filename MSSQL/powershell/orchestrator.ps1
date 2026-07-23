@@ -34,6 +34,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Continue'
 
+$SqlInstance = $SqlInstance.Trim()
+
 # ── Module check ──────────────────────────────────────────────────────────────
 $helperPath = Join-Path $PSScriptRoot 'shared\HC-Helpers.ps1'
 if (-not (Test-Path $helperPath)) {

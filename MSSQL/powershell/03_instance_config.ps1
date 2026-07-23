@@ -145,4 +145,13 @@ $results.Add((Invoke-HCSection @sqlSplat `
     -SectionName  'default_paths_logs' `
     -Chapter      $chapter))
 
+# ── 3.6 Non-system objects in master database (SQL) ───────────────────────────
+$results.Add((Invoke-HCSection @sqlSplat `
+    -Database     'master' `
+    -SqlFile      (Join-Path $sqlDir '03_06_master_db_objects.sql') `
+    -OutputPath   $OutputPath `
+    -SectionId    '03_06' `
+    -SectionName  'master_db_objects' `
+    -Chapter      $chapter))
+
 return $results

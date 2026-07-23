@@ -227,6 +227,39 @@ ORDER BY v.name, i.name;
 ';
     EXEC sys.sp_executesql @Sql;
 
+    -- ── 7. Tables with nonclustered PK and no clustered index (heap) ──────────
+    -- A heap with a nonclustered primary key means every non-covering query
+    -- must do a RID lookup instead of a key lookup, and large heaps accumulate
+    -- forwarded records that degrade read performance over time.
+    SET @Sql = N'
+USE ' + QUOTENAME(@DatabaseName) + N';
+
+SELECT
+    DB_NAME()               AS DatabaseName,
+    ''HEAP_WITH_NC_PK''     AS CheckType,
+    s.name                  AS SchemaName,
+    t.name                  AS TableName,
+    i.name                  AS PKIndexName,
+    i.type_desc             AS PKIndexType,
+    (SELECT SUM(p2.rows)
+     FROM   sys.partitions p2
+     WHERE  p2.object_id = i.object_id
+       AND  p2.index_id  = i.index_id) AS [RowCount]
+FROM sys.indexes   i
+JOIN sys.tables    t ON t.object_id = i.object_id
+JOIN sys.schemas   s ON s.schema_id = t.schema_id
+WHERE i.is_primary_key = 1
+  AND i.type = 2    -- nonclustered
+  AND NOT EXISTS (
+      SELECT 1
+      FROM sys.indexes ci
+      WHERE ci.object_id = i.object_id
+        AND ci.type      = 1   -- no clustered index on this table
+  )
+ORDER BY s.name, t.name;
+';
+    EXEC sys.sp_executesql @Sql;
+
     FETCH NEXT FROM db_cursor INTO @DatabaseName;
 END
 

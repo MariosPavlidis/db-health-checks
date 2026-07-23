@@ -1,6 +1,6 @@
 # =============================================================================
 # 11_index_health.ps1 — Chapter 11: Index Health
-# Checklist sections: 11.1 – 11.6
+# Checklist sections: 11.1 – 11.7
 # =============================================================================
 [CmdletBinding()]
 param(
@@ -83,6 +83,17 @@ $results.Add((Invoke-HCSection @sqlSplat `
     -OutputPath   $OutputPath `
     -SectionId    '11_06' `
     -SectionName  'columnstore_health' `
+    -Chapter      $chapter))
+
+# ── 11.07 Unindexed Foreign Keys ──────────────────────────────────────────────
+# Checks FK columns with no leading index on the child table, and FKs that
+# reference a UNIQUE constraint instead of a PRIMARY KEY.
+$results.Add((Invoke-HCSection @sqlSplat `
+    -Database     $SqlDb `
+    -SqlFile      (Join-Path $sqlDir '11_07_unindexed_fk_indexes.sql') `
+    -OutputPath   $OutputPath `
+    -SectionId    '11_07' `
+    -SectionName  'unindexed_fk_indexes' `
     -Chapter      $chapter))
 
 return $results

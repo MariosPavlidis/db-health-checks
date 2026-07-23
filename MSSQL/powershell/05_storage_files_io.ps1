@@ -380,4 +380,13 @@ $results.Add((Invoke-HCSection @sqlSplat `
     -SectionName  'instant_file_init' `
     -Chapter      $chapter))
 
+# ── 5.8 Per-database free space summary (SQL) ─────────────────────────────────
+$results.Add((Invoke-HCSection @sqlSplat `
+    -Database     $SqlDb `
+    -SqlFile      (Join-Path $sqlDir '05_08_db_free_space.sql') `
+    -OutputPath   $OutputPath `
+    -SectionId    '05_08' `
+    -SectionName  'db_free_space' `
+    -Chapter      $chapter))
+
 return $results

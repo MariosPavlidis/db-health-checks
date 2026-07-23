@@ -196,6 +196,7 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 | 3.3b | `03_03b_service_spns.csv` | setspn.exe | MSSQLSvc SPNs registered for the instance |
 | 3.4 | `03_04_instance_config_options.csv` | SQL | All `sp_configure` values with defaults and recommended ranges |
 | 3.5 | `03_05_default_paths_logs.csv` | SQL | Default data/log/backup paths, error log location |
+| 3.6 | `03_06_master_db_objects.csv` | SQL | User-created objects in the master database (tables, procs, functions, views) |
 
 ### Chapter 04 — Database Inventory
 
@@ -218,6 +219,7 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 | 5.5 | `05_05_file_io_latency.csv` | SQL | Per-file read/write latency from `sys.dm_io_virtual_file_stats` |
 | 5.6 | `05_06_storage_subsystem.csv` | WMI | Physical disk media type, health, MPIO detection |
 | 5.7 | `05_07_instant_file_init.csv` | SQL | Whether Instant File Initialization is enabled |
+| 5.8 | `05_08_db_free_space.csv` | SQL | Per-database free space summary — data, log, total, free % with LOW_FREE_SPACE flag |
 
 ### Chapter 06 — TempDB
 
@@ -277,8 +279,9 @@ The query surfaces all sessions matching the fragmentation and index usage healt
 | 11.2 | `11_02_missing_indexes.csv` | SQL | Missing index recommendations from `sys.dm_db_missing_index_details` |
 | 11.3 | `11_03_unused_indexes.csv` | SQL | Indexes with zero seeks/scans since last restart |
 | 11.4 | `11_04_duplicate_indexes.csv` | SQL | Duplicate and redundant indexes by key column signature |
-| 11.5 | `11_05_index_conditions.csv` | SQL | Disabled indexes, indexes without statistics, heap tables |
+| 11.5 | `11_05_index_conditions.csv` | SQL | Disabled indexes, hypothetical indexes, heaps (forwarded records), compression/fill factor, misaligned, indexed views, heap tables with nonclustered PK |
 | 11.6 | `11_06_columnstore_health.csv` | SQL | Columnstore row group health, delta store size, dictionary pressure |
+| 11.7 | `11_07_unindexed_fk_indexes.csv` | SQL | FK columns without a leading index on the child table; FKs referencing unique constraints instead of a PK |
 
 ### Chapter 12 — Statistics
 

@@ -154,6 +154,7 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 | 03_03 | PowerShell (Windows) | Service account, startup type, service SPN |
 | 03_04 | `sql/03_instance_config/03_04_instance_config_options.sql` | sp_configure settings — all non-default and key options |
 | 03_05 | `sql/03_instance_config/03_05_default_paths_logs.sql` | Default data/log/backup paths, error log path, number of logs retained |
+| 03_06 | `sql/03_instance_config/03_06_master_db_objects.sql` | User-created objects in the master database (tables, procs, functions, views) |
 
 ### 04 — Database Inventory
 
@@ -176,6 +177,7 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 | 05_05 | `sql/05_storage_files_io/05_05_file_io_latency.sql` | Read/write latency per file since last restart (DMV-based) |
 | 05_06 | PowerShell (Windows) | Storage controller type, multi-path I/O |
 | 05_07 | `sql/05_storage_files_io/05_07_instant_file_init.sql` | Instant file initialization privilege check |
+| 05_08 | `sql/05_storage_files_io/05_08_db_free_space.sql` | Per-database free space summary — data, log, total, free % with LOW_FREE_SPACE flag |
 
 ### 06 — TempDB
 
@@ -233,8 +235,9 @@ Many scripts include `flag_*` columns (integer 0/1). Filter on `flag_* = 1` to s
 | 11_02 | `sql/11_index_health/11_02_missing_indexes.sql` | Missing index recommendations from DMVs, sorted by impact |
 | 11_03 | `sql/11_index_health/11_03_unused_indexes.sql` | Indexes with zero or near-zero seeks/scans since last restart |
 | 11_04 | `sql/11_index_health/11_04_duplicate_indexes.sql` | Duplicate and redundant index pairs |
-| 11_05 | `sql/11_index_health/11_05_index_conditions.sql` | Heaps, disabled indexes, indexes without statistics |
+| 11_05 | `sql/11_index_health/11_05_index_conditions.sql` | Disabled indexes, hypothetical indexes, heaps (forwarded records), compression/fill factor, misaligned, indexed views, heap tables with nonclustered PK |
 | 11_06 | `sql/11_index_health/11_06_columnstore_health.sql` | Columnstore index row group health and delta store pressure |
+| 11_07 | `sql/11_index_health/11_07_unindexed_fk_indexes.sql` | FK columns without a leading index on the child table; FKs referencing unique constraints instead of a PK |
 
 ### 12 — Statistics
 
